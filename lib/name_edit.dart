@@ -30,6 +30,7 @@ class _LoginPageState extends State<LoginPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
           title: Row(
             children: [
               // GestureDetector(
@@ -82,6 +83,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.white,
         leading: GestureDetector(
           onTap: () {
             Navigator.of(context).pop();
@@ -93,7 +95,8 @@ class _LoginPageState extends State<LoginPage> {
         ),
         title: Text('이름 추가/변경'),
       ),
-      body: Padding(
+      body: Container(
+        color: Colors.white,
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

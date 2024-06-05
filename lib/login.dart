@@ -112,6 +112,7 @@ class LoginScreen extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
           title: Row(
             children: [
               // GestureDetector(
