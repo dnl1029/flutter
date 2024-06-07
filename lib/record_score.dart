@@ -1,5 +1,6 @@
 import 'package:contact/my_flutter_app_icons.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() => runApp(BowlingScoresApp());
 
@@ -7,6 +8,15 @@ class BowlingScoresApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: [
+        const Locale('ko', 'KR'), // 한국어 로케일 추가
+      ],
+      locale: const Locale('ko', 'KR'), // 앱의 기본 로케일을 한국어로 설정
       theme: ThemeData(
         scaffoldBackgroundColor: Colors.white, // 기본 배경 색상을 흰색으로 설정
       ),
@@ -15,59 +25,122 @@ class BowlingScoresApp extends StatelessWidget {
   }
 }
 
-class BowlingScoresScreen extends StatelessWidget {
+class BowlingScoresScreen extends StatefulWidget {
+  @override
+  _BowlingScoresScreenState createState() => _BowlingScoresScreenState();
+}
+
+class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
+  DateTime? selectedDate;
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2101),
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
+      // locale: Locale('ko', 'KR'),
+    );
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          Container(
-            color: Color(0xFF303F9F),
-            padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(CustomIcons.bowling_ball, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('점수 기록하기', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                Icon(Icons.settings, color: Colors.white, size: 24),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.all(16.0),
-              children: [
-                LaneScores(laneNumber: 1, players: ['위형규', '우경석', '이민지']),
-                // Add more lanes as needed
-              ],
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.white,
-        height: 60,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+        body: Column(
           children: [
-            SizedBox(width: 16,),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-                surfaceTintColor: Colors.blue,
-                foregroundColor: Colors.white
+            Container(
+              color: Color(0xFF303F9F),
+              padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(CustomIcons.bowling_ball, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('점수 기록하기', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  Icon(Icons.settings, color: Colors.white, size: 24),
+                ],
+              ),
             ),
-                onPressed: (){},
-                child: Text('저장')
-            )
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Text(
+                    '날짜 선택: ',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        _selectDate(context);
+                      },
+                      child: Container(
+                        height: 40,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                selectedDate != null
+                                    ? '${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}'
+                                    : '날짜',
+                              ),
+                            ),
+                            Icon(Icons.calendar_today),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.all(16.0),
+                children: [
+                  LaneScores(laneNumber: 1, players: ['위형규', '우경석', '이민지']),
+                  // Add more lanes as needed
+                ],
+              ),
+            ),
           ],
         ),
-      )
+        bottomNavigationBar: BottomAppBar(
+          color: Colors.white,
+          height: 60,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              SizedBox(width: 16,),
+              ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      surfaceTintColor: Colors.blue,
+                      foregroundColor: Colors.white
+                  ),
+                  onPressed: (){},
+                  child: Text('저장')
+              )
+            ],
+          ),
+        )
     );
   }
 }
