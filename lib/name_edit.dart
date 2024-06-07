@@ -70,8 +70,8 @@ class _LoginPageState extends State<LoginPage> {
     String name = _nameController.text;
     if (name.isEmpty) {
       _showAlertDialog(context, '입력된 이름이 없습니다.');
-    } else if (name.length > 10) {
-      _showAlertDialog(context, '이름이 10글자를 초과하였습니다.');
+    } else if (name.length > 20) {
+      _showAlertDialog(context, '이름이 20글자를 초과하였습니다.');
     } else {
       // 로그인 성공 처리
       print('로그인 성공: $name');

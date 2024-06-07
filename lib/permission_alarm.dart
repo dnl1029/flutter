@@ -15,13 +15,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         scaffoldBackgroundColor: Colors.white, // 기본 배경 색상을 흰색으로 설정
       ),
-      home: Notialarm()
+      home: PermissionAlarm()
     );
 
   }
 }
 
-class Notialarm extends StatelessWidget {
+class PermissionAlarm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,7 +60,6 @@ class Notialarm extends StatelessWidget {
                   ],
                 ),
               ),
-              // Text('볼케이노에서 사진 및 동영상에 접근하도록 허용하시겠습니까?',style: TextStyle(color: Colors.black,fontSize: 14),),
               SizedBox(height: 20,),
               TextButton(onPressed: () {},
                   child: Text('허용', style: TextStyle(
@@ -80,16 +79,4 @@ class Notialarm extends StatelessWidget {
   }
 }
 
-//커스텀위젯만드려면, stless 쳐서 이거 만들어서 return에 길고 복잡한 레이아웃 넣음.
-//column 대신 ListView를 쓰면 스크롤바생기고, 메모리 절약기능도 있음.
-// class ShopItem extends StatelessWidget {
-//   const ShopItem({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return SizedBox(
-//       child: Text('안녕'),
-//     );
-//   }
-// }
 
