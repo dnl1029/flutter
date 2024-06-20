@@ -1,29 +1,36 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:dio/dio.dart' as dio;
 
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
+class NameEditScreen extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Login App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: LoginPage(),
-    );
-  }
+  _NameEditScreenState createState() => _NameEditScreenState();
 }
 
-class LoginPage extends StatefulWidget {
-  @override
-  _LoginPageState createState() => _LoginPageState();
-}
-
-class _LoginPageState extends State<LoginPage> {
+class _NameEditScreenState extends State<NameEditScreen> {
   final _nameController = TextEditingController();
+  final FlutterSecureStorage _storage = FlutterSecureStorage();
+  final dio.Dio _dio = dio.Dio();
+
+  _NameEditScreenState() {
+    _dio.interceptors.add(dio.InterceptorsWrapper(
+      onRequest: (options, handler) {
+        print("Request[${options.method}] => PATH: ${options.path}");
+        print("Headers: ${options.headers}");
+        return handler.next(options); // continue
+      },
+      onResponse: (response, handler) {
+        print("Response[${response.statusCode}] => DATA: ${response.data}");
+        return handler.next(response); // continue
+      },
+      onError: (dio.DioError e, handler) {
+        print("Error[${e.response?.statusCode}] => MESSAGE: ${e.message}");
+        return handler.next(e); // continue
+      },
+    ));
+  }
 
   void _showAlertDialog(BuildContext context, String message) {
     showDialog(
@@ -31,21 +38,7 @@ class _LoginPageState extends State<LoginPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          title: Row(
-            children: [
-              // GestureDetector(
-              //   onTap: () {
-              //     Navigator.of(context).pop();
-              //   },
-              //   child: Icon(
-              //     Icons.arrow_back_ios_new,
-              //     color: Colors.black,
-              //   ),
-              // ),
-              SizedBox(width: 10),
-              Text("경고"),
-            ],
-          ),
+          title: Text("경고"),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
@@ -66,16 +59,41 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _handleLogin(BuildContext context) {
+  Future<void> _saveName(BuildContext context) async {
     String name = _nameController.text;
+    final storedToken = await _storage.read(key: 'jwtToken');
+    if (storedToken == null) {
+      _showAlertDialog(context, 'JWT 토큰을 가져오는 데 실패했습니다.');
+      return;
+    }
     if (name.isEmpty) {
       _showAlertDialog(context, '입력된 이름이 없습니다.');
+      return;
     } else if (name.length > 20) {
       _showAlertDialog(context, '이름이 20글자를 초과하였습니다.');
-    } else {
-      // 로그인 성공 처리
-      print('로그인 성공: $name');
-      // 실제 로그인 로직을 여기에 추가하세요
+      return;
+    }
+
+    final saveNameUrl = "http://dnl1029.cafe24.com/api/v1/edit";
+
+    try {
+      final saveNameResponse = await _dio.post(
+        saveNameUrl,
+        options: dio.Options(
+          headers: {'Content-Type': 'application/json', 'jwtToken': storedToken},
+        ),
+        data: jsonEncode({'userName': name}),
+      );
+
+      final responseBody = saveNameResponse.data;
+      if (saveNameResponse.statusCode == 200 && responseBody['code'] == '200') {
+        print('이름 저장 성공: $name');
+        _showAlertDialog(context, '이름이 성공적으로 저장되었습니다.');
+      } else {
+        _showAlertDialog(context, '이름 저장에 실패했습니다. 다시 시도해주세요.');
+      }
+    } catch (e) {
+      _showAlertDialog(context, '이름 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
     }
   }
 
@@ -84,16 +102,13 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        leading: GestureDetector(
-          onTap: () {
+        title: Text('이름 추가/변경'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
             Navigator.of(context).pop();
           },
-          child: Icon(
-            Icons.arrow_back_ios_new,
-            color: Colors.black,
-          ),
         ),
-        title: Text('이름 추가/변경'),
       ),
       body: Container(
         color: Colors.white,
@@ -110,7 +125,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () => _handleLogin(context),
+              onPressed: () => _saveName(context),
               child: Text('수정'),
             ),
           ],
