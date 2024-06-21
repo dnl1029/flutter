@@ -4,13 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart' as dio;
 
+import 'main_screen.dart';
+
 class NameEditScreen extends StatefulWidget {
+  final TextEditingController nameController;
+
+  NameEditScreen({required this.nameController});
+
   @override
   _NameEditScreenState createState() => _NameEditScreenState();
 }
 
 class _NameEditScreenState extends State<NameEditScreen> {
-  final _nameController = TextEditingController();
   final FlutterSecureStorage _storage = FlutterSecureStorage();
   final dio.Dio _dio = dio.Dio();
 
@@ -32,13 +37,13 @@ class _NameEditScreenState extends State<NameEditScreen> {
     ));
   }
 
-  void _showAlertDialog(BuildContext context, String message) {
+  void _showAlertDialog(BuildContext context, String message, {VoidCallback? onConfirmed}) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          title: Text("경고"),
+          title: Text("알림"),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
@@ -51,6 +56,9 @@ class _NameEditScreenState extends State<NameEditScreen> {
               child: Text('확인'),
               onPressed: () {
                 Navigator.of(context).pop();
+                if (onConfirmed != null) {
+                  onConfirmed();
+                }
               },
             ),
           ],
@@ -60,7 +68,7 @@ class _NameEditScreenState extends State<NameEditScreen> {
   }
 
   Future<void> _saveName(BuildContext context) async {
-    String name = _nameController.text;
+    String name = widget.nameController.text;
     final storedToken = await _storage.read(key: 'jwtToken');
     if (storedToken == null) {
       _showAlertDialog(context, 'JWT 토큰을 가져오는 데 실패했습니다.');
@@ -74,7 +82,7 @@ class _NameEditScreenState extends State<NameEditScreen> {
       return;
     }
 
-    final saveNameUrl = "http://dnl1029.cafe24.com/api/v1/edit";
+    final saveNameUrl = "https://bowling-rolling.com/api/v1/edit/myName";
 
     try {
       final saveNameResponse = await _dio.post(
@@ -82,13 +90,15 @@ class _NameEditScreenState extends State<NameEditScreen> {
         options: dio.Options(
           headers: {'Content-Type': 'application/json', 'jwtToken': storedToken},
         ),
-        data: jsonEncode({'userName': name}),
+        data: jsonEncode({"userName": name}),
       );
 
       final responseBody = saveNameResponse.data;
       if (saveNameResponse.statusCode == 200 && responseBody['code'] == '200') {
         print('이름 저장 성공: $name');
-        _showAlertDialog(context, '이름이 성공적으로 저장되었습니다.');
+        _showAlertDialog(context, '이름이 성공적으로 저장되었습니다.', onConfirmed: () {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
+        });
       } else {
         _showAlertDialog(context, '이름 저장에 실패했습니다. 다시 시도해주세요.');
       }
@@ -117,7 +127,7 @@ class _NameEditScreenState extends State<NameEditScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             TextField(
-              controller: _nameController,
+              controller: widget.nameController,
               decoration: InputDecoration(
                 labelText: '이름을 입력해주세요',
                 border: OutlineInputBorder(),

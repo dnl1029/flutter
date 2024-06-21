@@ -9,6 +9,7 @@ class LoginScreen extends StatelessWidget {
   final TextEditingController _userIdController = TextEditingController();
   final FlutterSecureStorage _storage = FlutterSecureStorage();
   final dio.Dio _dio = dio.Dio();
+  final TextEditingController nameController = TextEditingController();
 
   LoginScreen() {
     _dio.interceptors.add(dio.InterceptorsWrapper(
@@ -35,7 +36,7 @@ class LoginScreen extends StatelessWidget {
       return;
     }
 
-    final url = 'http://dnl1029.cafe24.com/api/v1/login';
+    final url = 'https://bowling-rolling.com/api/v1/login';
 
     try {
       final response = await _dio.post(
@@ -51,8 +52,9 @@ class LoginScreen extends StatelessWidget {
         if (responseBody['code'] == '200') {
           final jwtToken = responseBody['message'].toString();
           await _storage.write(key: 'jwtToken', value: jwtToken);
+          print('LoginScreen jwtToken : $jwtToken');
 
-          final getNameUrl = 'http://dnl1029.cafe24.com/api/v1/get/myName';
+          final getNameUrl = 'https://bowling-rolling.com/api/v1/get/myName';
           final storedToken = await _storage.read(key: 'jwtToken');
           if (storedToken == null) {
             _showAlertDialog(context, 'JWT 토큰을 가져오는 데 실패했습니다.');
@@ -62,13 +64,14 @@ class LoginScreen extends StatelessWidget {
           final getNameResponse = await _dio.get(
             getNameUrl,
             options: dio.Options(
-              headers: {'jwtToken': storedToken},
+              headers: {"jwtToken": storedToken,
+              },
             ),
           );
 
           final getNameResponseBody = getNameResponse.data;
           if (getNameResponseBody['code'] == '204') {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => NameEditScreen()));
+            Navigator.push(context, MaterialPageRoute(builder: (context) => NameEditScreen(nameController: nameController)));
           }
           else if (getNameResponseBody['code'] == '200') {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));

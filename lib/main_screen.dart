@@ -1,3 +1,4 @@
+import 'package:contact/font_awesome_icons.dart';
 import 'package:contact/my_flutter_app_icons.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +6,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'login.dart';
+import 'my_setting.dart';
+import 'my_setting.dart'; // my_settings.dart 파일을 import 합니다
 
 class MainScreen extends StatelessWidget {
   @override
@@ -65,12 +68,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-// Header, Content, GraphSection, RankingSection, RecordsSection, Footer 클래스는 그대로 유지
-
 class Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      color: Color(0xFF303F9F),
       padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -82,7 +84,15 @@ class Header extends StatelessWidget {
               Text('볼케이노', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             ],
           ),
-          Icon(Icons.settings, size: 24),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsPage()), // SettingsPage로 이동
+              );
+            },
+            child: Icon(Icons.settings, color: Colors.white, size: 24),
+          ),
         ],
       ),
     );
@@ -105,24 +115,30 @@ class Content extends StatelessWidget {
   }
 }
 
+// Section, UserInfo, GraphSection, RankingSection, RecordsSection, RankingOption, GraphOption, Footer 클래스는 그대로 유지
+
+
 class Section extends StatelessWidget {
   final String title;
   final Widget child;
-  final Icon? icon;
+  final Icon? icon; // 선택적으로 아이콘을 추가하기 위한 IconData
 
-  Section({required this.title, required this.child, this.icon});
+  Section({required this.title, required this.child, this.icon}); // 아이콘 매개변수 추가
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      color: Colors.white,
       padding: EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Row( // 아이콘을 포함한 제목을 표시하는 Row 추가
             children: [
-              if (icon != null) Container(child: icon),
-              if (icon != null) SizedBox(width: 15),
+              if (icon != null) // 아이콘이 있으면 아이콘을 표시
+                Container(child: icon),
+              if (icon != null) // 아이콘이 있으면 아이콘과 제목 사이에 간격 추가
+                SizedBox(width: 15),
               Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ],
           ),
@@ -139,13 +155,17 @@ class UserInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
+      color: Colors.grey[100],
       padding: EdgeInsets.all(15),
       child: Row(
         children: [
-          Expanded(
-            child: Icon(Icons.man, size: 60),
-            flex: 3,
-          ),
+          Expanded(child:
+          // CircleAvatar(
+          //   // radius: 40,
+          //   // backgroundImage: AssetImage('assets/placeholder.png'), // 사용자 아바타 이미지 경로
+          // )
+          Icon(Icons.man,size: 60,)
+            ,flex: 3,),
           Expanded(
             flex: 7,
             child: Column(
@@ -216,7 +236,7 @@ class GraphSection extends StatelessWidget {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Container(
-                  width: dataPoints.length * 100.0,
+                  width: dataPoints.length * 100.0, // Adjust the width to allow for scrolling
                   height: 400,
                   child: LineChart(
                     LineChartData(
@@ -225,7 +245,7 @@ class GraphSection extends StatelessWidget {
                         leftTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
-                            reservedSize: 40,
+                            reservedSize: 40, // Increase the width of the left labels
                             getTitlesWidget: (value, meta) {
                               return Text('${value.toInt()}점');
                             },
@@ -234,7 +254,7 @@ class GraphSection extends StatelessWidget {
                         bottomTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
-                            interval: 1,
+                            interval: 1, // Set interval to 1 month
                             getTitlesWidget: (value, meta) {
                               return Text(monthLabels[value.toInt()] ?? '');
                             },
@@ -249,19 +269,19 @@ class GraphSection extends StatelessWidget {
                       ),
                       borderData: FlBorderData(
                         show: true,
-                        border: Border.all(color: Colors.black),
+                        border: Border.all(color: Colors.black, width: 1),
                       ),
                       minX: 0,
-                      maxX: dataPoints.length - 1.toDouble(),
+                      maxX: dataPoints.length - 1,
                       minY: 0,
-                      maxY: 200,
+                      maxY: 300,
                       lineBarsData: [
                         LineChartBarData(
                           spots: dataPoints,
                           isCurved: true,
-                          barWidth: 2,
-                          // color: [Colors.blue],
-                          dotData: FlDotData(show: true),
+                          barWidth: 4,
+                          isStrokeCapRound: true,
+                          belowBarData: BarAreaData(show: false),
                         ),
                       ],
                     ),
@@ -276,6 +296,222 @@ class GraphSection extends StatelessWidget {
   }
 }
 
+class RankingSection extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Section(
+      title: '취미반 랭킹',
+      icon: Icon(FontAwesome.crown,color: Color(0xFFFFD700)),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: RankingOption(text: '최고 점수 기준', isSelected: true)),
+              Expanded(child: RankingOption(text: '평균 점수 기준', isSelected: false)),
+            ],
+          ),
+          SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            child: DataTable(
+              columns: [
+                DataColumn(
+                  label: Text(
+                    '순위',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    '점수',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    '이름',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+              rows: [
+                DataRow(cells: [
+                  DataCell(Text('1')),
+                  DataCell(Text('190')),
+                  DataCell(Text('위형규')),
+                ]),
+                DataRow(cells: [
+                  DataCell(Text('2')),
+                  DataCell(Text('180')),
+                  DataCell(Text('우경석')),
+                ]),
+                DataRow(cells: [
+                  DataCell(Text('3')),
+                  DataCell(Text('170')),
+                  DataCell(Text('이민지')),
+                ]),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class RecordsSection extends StatefulWidget {
+  @override
+  _RecordsSectionState createState() => _RecordsSectionState();
+}
+
+class _RecordsSectionState extends State<RecordsSection> {
+  DateTime? selectedDate;
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2101),
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
+      // locale: Locale('ko', 'KR'),
+    );
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Section(
+      title: '취미반 볼링 기록',
+      child: Column(
+        children: [
+          SizedBox(height: 16),
+          Row(
+            children: [
+              Text(
+                '날짜 선택: ',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    _selectDate(context);
+                  },
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            selectedDate != null
+                                ? '${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}'
+                                : '날짜',
+                          ),
+                        ),
+                        Icon(Icons.calendar_today),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: [
+                  DataColumn(
+                    label: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: 40,
+                        minWidth: 40,
+                      ),
+                      child: Text('이름', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Round 1',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Round 2',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Round 3',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+                rows: [
+                  DataRow(cells: [
+                    DataCell(Text('위형규')),
+                    DataCell(Text('90')),
+                    DataCell(Text('100')),
+                    DataCell(Text('120')),
+                  ]),
+                  DataRow(cells: [
+                    DataCell(Text('우경석')),
+                    DataCell(Text('80')),
+                    DataCell(Text('95')),
+                    DataCell(Text('110')),
+                  ]),
+                  DataRow(cells: [
+                    DataCell(Text('이민지')),
+                    DataCell(Text('85')),
+                    DataCell(Text('90')),
+                    DataCell(Text('105')),
+                  ]),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class RankingOption extends StatelessWidget {
+  final String text;
+  final bool isSelected;
+
+  RankingOption({required this.text, required this.isSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Radio(
+          value: isSelected,
+          groupValue: true,
+          onChanged: (value) {},
+        ),
+        Text(text, style: TextStyle(fontSize: 16)),
+      ],
+    );
+  }
+}
+
 class GraphOption extends StatelessWidget {
   final String text;
   final bool isSelected;
@@ -284,115 +520,15 @@ class GraphOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-      decoration: BoxDecoration(
-        color: isSelected ? Color(0xff99B2CC) : Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 3,
-            blurRadius: 5,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 14,
-            color: isSelected ? Colors.white : Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+    return Row(
+      children: [
+        Radio(
+          value: isSelected,
+          groupValue: true,
+          onChanged: (value) {},
         ),
-      ),
-    );
-  }
-}
-
-class RankingSection extends StatelessWidget {
-  final List<Map<String, dynamic>> rankingData = [
-    {'rank': 1, 'name': '회원1', 'score': 180},
-    {'rank': 2, 'name': '회원2', 'score': 170},
-    {'rank': 3, 'name': '회원3', 'score': 160},
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Section(
-      title: '전체 회원 랭킹',
-      child: Column(
-        children: rankingData.map((data) {
-          return Container(
-            margin: EdgeInsets.only(bottom: 10),
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  spreadRadius: 2,
-                  blurRadius: 5,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('${data['rank']}위'),
-                Text('${data['name']}'),
-                Text('${data['score']}점'),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class RecordsSection extends StatelessWidget {
-  final List<Map<String, dynamic>> recordData = [
-    {'date': '2024. 06. 01', 'score': 150},
-    {'date': '2024. 05. 25', 'score': 160},
-    {'date': '2024. 05. 20', 'score': 155},
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Section(
-      title: '내 기록',
-      child: Column(
-        children: recordData.map((data) {
-          return Container(
-            margin: EdgeInsets.only(bottom: 10),
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  spreadRadius: 2,
-                  blurRadius: 5,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('${data['date']}'),
-                Text('${data['score']}점'),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
+        Text(text, style: TextStyle(fontSize: 16)),
+      ],
     );
   }
 }
@@ -400,22 +536,15 @@ class RecordsSection extends StatelessWidget {
 class Footer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      items: const <BottomNavigationBarItem>[
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: '홈',
+    return Container(
+      color: Colors.grey[100],
+      padding: EdgeInsets.all(24),
+      child: Center(
+        child: ElevatedButton(
+          onPressed: () {},
+          child: Text('점수 기록하기'),
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.business),
-          label: '내 정보',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.school),
-          label: '랭킹',
-        ),
-      ],
-      selectedItemColor: Color(0xff99B2CC),
+      ),
     );
   }
 }
