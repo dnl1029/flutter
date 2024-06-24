@@ -7,7 +7,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'login.dart';
 import 'my_setting.dart';
-import 'my_setting.dart'; // my_settings.dart 파일을 import 합니다
 
 class MainScreen extends StatelessWidget {
   @override
