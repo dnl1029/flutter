@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:dio/dio.dart' as dio;
 
 import 'login.dart';
 import 'my_setting.dart';
@@ -30,6 +31,7 @@ class MainScreen extends StatelessWidget {
   }
 }
 
+
 class MyHomePage extends StatefulWidget {
   @override
   _MyHomePageState createState() => _MyHomePageState();
@@ -37,12 +39,15 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String? jwtToken;
+  String? imageFileName;
   final FlutterSecureStorage _storage = FlutterSecureStorage();
+  final dio.Dio _dio = dio.Dio();
 
   @override
   void initState() {
     super.initState();
     _loadJwtToken();
+    _loadImageFileName();
   }
 
   Future<void> _loadJwtToken() async {
@@ -53,13 +58,37 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> _loadImageFileName() async {
+    final storedToken = await _storage.read(key: 'jwtToken');
+    final getImageFileNameUrl = 'https://bowling-rolling.com/api/v1/get/myImage';
+
+    try {
+      final getImageFileNameResponse = await _dio.get(
+        getImageFileNameUrl,
+        options: dio.Options(
+          headers: {"jwtToken": storedToken},
+        ),
+      );
+
+      if (getImageFileNameResponse.statusCode == 200 && getImageFileNameResponse.data['code'] == '200') {
+        setState(() {
+          imageFileName = getImageFileNameResponse.data['message']; // API에서 정상적으로 imageFileName 가져옴
+        });
+      } else {
+        print('이미지 가져오기 실패: ${getImageFileNameResponse.data['message']}');
+      }
+    } catch (e) {
+      print('이미지 가져오기 실패: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
           Header(),
-          Expanded(child: Content()),
+          Expanded(child: Content(imageFileName: imageFileName)), // Pass imageFileName to Content
           Footer(),
         ],
       ),
@@ -99,12 +128,16 @@ class Header extends StatelessWidget {
 }
 
 class Content extends StatelessWidget {
+  final String? imageFileName; // Add imageFileName as a parameter
+
+  Content({this.imageFileName}); // Update the constructor
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         children: [
-          UserInfo(),
+          UserInfo(imageFileName: imageFileName), // Pass imageFileName to UserInfo
           GraphSection(),
           RankingSection(),
           RecordsSection(),
@@ -150,6 +183,10 @@ class Section extends StatelessWidget {
 }
 
 class UserInfo extends StatelessWidget {
+  final String? imageFileName; // Add imageFileName as a parameter
+
+  UserInfo({this.imageFileName}); // Update the constructor
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -158,13 +195,15 @@ class UserInfo extends StatelessWidget {
       padding: EdgeInsets.all(15),
       child: Row(
         children: [
-          Expanded(child:
-          // CircleAvatar(
-          //   // radius: 40,
-          //   // backgroundImage: AssetImage('assets/placeholder.png'), // 사용자 아바타 이미지 경로
-          // )
-          Icon(Icons.man,size: 60,)
-            ,flex: 3,),
+          Expanded(
+            child: CircleAvatar(
+              radius: 60,
+              backgroundImage: imageFileName != null
+                  ? AssetImage('$imageFileName')
+                  : AssetImage('default.png'), // Default image if imageFileName is null
+            ),
+            flex: 3,
+          ),
           Expanded(
             flex: 7,
             child: Column(

@@ -59,7 +59,9 @@ class PermissionGuideScreen extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   //9CB3CBFF
                     minimumSize: Size(double.infinity, 50),
-                    backgroundColor: Colors.blue,
+                    backgroundColor: Color(0xFF0D47A1),
+                    surfaceTintColor: Color(0xFF0D47A1),
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(5)
                     )

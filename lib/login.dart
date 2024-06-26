@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart' as dio;
 import 'dart:convert';
+import 'image_edit.dart';
 import 'main_screen.dart';
 import 'name_edit.dart';
 
@@ -55,6 +56,8 @@ class LoginScreen extends StatelessWidget {
           print('LoginScreen jwtToken : $jwtToken');
 
           final getNameUrl = 'https://bowling-rolling.com/api/v1/get/myName';
+          final getImageFileNameUrl = 'https://bowling-rolling.com/api/v1/get/myImage';
+
           final storedToken = await _storage.read(key: 'jwtToken');
           if (storedToken == null) {
             _showAlertDialog(context, 'JWT 토큰을 가져오는 데 실패했습니다.');
@@ -69,11 +72,42 @@ class LoginScreen extends StatelessWidget {
             ),
           );
 
+          final getImageFileNameResponse = await _dio.get(
+            getImageFileNameUrl,
+            options: dio.Options(
+              headers: {"jwtToken": storedToken},
+            ),
+          );
+
           final getNameResponseBody = getNameResponse.data;
-          if (getNameResponseBody['code'] == '204') {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => NameEditScreen(nameController: nameController)));
+          final getImageFileNameResponseBody = getImageFileNameResponse.data;
+
+          if (getNameResponseBody['code'] == '204' && getImageFileNameResponseBody['code'] == '204') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => NameEditScreen(
+                  nameController: nameController,
+                  targetScreen: ProfilePictureSelection(),
+                ),
+              ),
+            );
           }
-          else if (getNameResponseBody['code'] == '200') {
+          else if(getNameResponseBody['code'] == '204' && getImageFileNameResponseBody['code'] == '200'){
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => NameEditScreen(
+                  nameController: nameController,
+                  targetScreen: MainScreen(),
+                ),
+              ),
+            );
+          }
+          else if(getNameResponseBody['code'] == '200' && getImageFileNameResponseBody['code'] == '204'){
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePictureSelection()));
+          }
+          else if (getNameResponseBody['code'] == '200' && getImageFileNameResponseBody['code'] == '200') {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
           }
         } else {
@@ -180,12 +214,19 @@ class LoginScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () => _login(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xff99B2CC),
+                    backgroundColor: Color(0xFF0D47A1),
+                    surfaceTintColor: Color(0xFF0D47A1),
+                    foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 23),
                   ),
                   child: Text('로그인', style: TextStyle(fontSize: 16)),
                 ),
               ),
+              SizedBox(height: 25),
+              Container(
+                width: double.infinity,
+                child: Text('※비밀번호 없이 사번 입력만으로 로그인 가능합니다. 본인의 사번으로만 로그인 해주세요.',style: TextStyle(color: Colors.grey,),textAlign: TextAlign.left,),
+              )
             ],
           ),
         ),
