@@ -21,11 +21,13 @@ class _NameEditScreenState extends State<NameEditScreen> {
   Future<void> _saveName(BuildContext context) async {
     String name = widget.nameController.text;
     if (name.isEmpty) {
-      Utils.showAlertDialog(context, '입력된 이름이 없습니다.');
-      return;
+      Utils.showAlertDialog(context, '입력된 이름이 없습니다.',onConfirmed: () {
+        return;
+      });
     } else if (name.length > 20) {
-      Utils.showAlertDialog(context, '이름이 20글자를 초과하였습니다.');
-      return;
+      Utils.showAlertDialog(context, '이름이 20글자를 초과하였습니다.',onConfirmed: () {
+        return;
+      });
     }
 
     final saveNameUrl = "https://bowling-rolling.com/api/v1/edit/myName";

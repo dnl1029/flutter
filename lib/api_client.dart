@@ -86,11 +86,12 @@ class ApiClient {
 
   Future<void> logout(BuildContext context) async {
     await StorageCustom.delete('jwtToken'); // 토큰 삭제
-    Utils.showAlertDialog(context, '로그인이 만료되었습니다. 다시 로그인해주세요.');
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-          (route) => false,
-    );
+    Utils.showAlertDialog(context, '로그인이 만료되었습니다. 다시 로그인해주세요.',onConfirmed: (){
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+            (route) => false,
+      );
+    });
   }
 }

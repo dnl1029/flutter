@@ -1,5 +1,6 @@
 import 'package:contact/font_awesome_icons.dart';
 import 'package:contact/my_flutter_app_icons.dart';
+import 'package:contact/record_score.dart';
 import 'package:contact/storage_custom.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:fl_chart/fl_chart.dart';
@@ -578,7 +579,9 @@ class Footer extends StatelessWidget {
       padding: EdgeInsets.all(24),
       child: Center(
         child: ElevatedButton(
-          onPressed: () {},
+          onPressed: () => {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => BowlingScoresApp()))
+          },
           child: Text('점수 기록하기'),
         ),
       ),

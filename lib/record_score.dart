@@ -1,6 +1,10 @@
+import 'dart:convert';
 import 'package:contact/my_flutter_app_icons.dart';
+import 'package:contact/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'api_client.dart';
+import 'lane_assignment.dart';
 
 void main() => runApp(BowlingScoresApp());
 
@@ -32,6 +36,8 @@ class BowlingScoresScreen extends StatefulWidget {
 
 class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
   DateTime? selectedDate;
+  List<LaneScoresData> laneScoresData = [];
+  final ApiClient _apiClient = ApiClient();
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -40,13 +46,88 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2101),
       initialEntryMode: DatePickerEntryMode.calendarOnly,
-      // locale: Locale('ko', 'KR'),
     );
     if (picked != null && picked != selectedDate) {
       setState(() {
         selectedDate = picked;
       });
+      await _checkAlignmentAndNavigate();
+      await _fetchLaneScores();
     }
+  }
+
+  Future<void> _checkAlignmentAndNavigate() async {
+    if (selectedDate == null) return;
+    String formattedDate = _formatDate(selectedDate!);
+
+    final checkAlignmentUrl = 'https://bowling-rolling.com/api/v1/score/determine/alignment';
+    final checkAlignmentResponse = await _apiClient.post(context,
+      checkAlignmentUrl,
+      data: jsonEncode({"workDt": formattedDate}),
+    );
+
+    if (checkAlignmentResponse.statusCode == 200) {
+      final result = checkAlignmentResponse.data;
+      if (result == false) {
+        Utils.showAlertDialog(context, '선택된 날짜의 회원별 레인 데이터가 없습니다.'
+            ,onConfirmed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => BowlingLanesPage()),
+              );
+            });
+      }
+    }
+  }
+
+  Future<void> _fetchLaneScores() async {
+    if (selectedDate == null) return;
+    String formattedDate = _formatDate(selectedDate!);
+
+    final fetchScoresUrl = 'https://bowling-rolling.com/api/v1/score/daily/workDt';
+    final fetchScoresResponse = await _apiClient.post(
+      context,
+      fetchScoresUrl,
+      data: jsonEncode({"workDt": formattedDate}),
+    );
+
+    if (fetchScoresResponse.statusCode == 200) {
+      final responseData = fetchScoresResponse.data;
+      final List<dynamic> dailyScores = responseData['dailyScores'];
+
+      setState(() {
+        laneScoresData = _parseLaneScores(dailyScores);
+      });
+    }
+  }
+
+  List<LaneScoresData> _parseLaneScores(List<dynamic> dailyScores) {
+    Map<int, Map<int, List<Player>>> lanes = {};
+
+    for (var score in dailyScores) {
+      int laneNum = score['laneNum'];
+      int gameNum = score['gameNum'];
+      String userName = score['userName'];
+
+      lanes.putIfAbsent(laneNum, () => {});
+      lanes[laneNum]!.putIfAbsent(gameNum, () => []);
+      lanes[laneNum]![gameNum]!.add(Player(userName: userName));
+    }
+
+    List<LaneScoresData> laneScoresData = [];
+    lanes.forEach((laneNum, games) {
+      List<GameScoresData> gameScoresData = [];
+      games.forEach((gameNum, players) {
+        gameScoresData.add(GameScoresData(gameNumber: gameNum, players: players));
+      });
+      laneScoresData.add(LaneScoresData(laneNumber: laneNum, gameScores: gameScoresData));
+    });
+
+    return laneScoresData;
+  }
+
+  String _formatDate(DateTime date) {
+    return "${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}";
   }
 
   @override
@@ -73,40 +154,71 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
             ),
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Row(
+              child: Column(
                 children: [
-                  Text(
-                    '날짜 선택: ',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        _selectDate(context);
-                      },
-                      child: Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              child: Text(
-                                selectedDate != null
-                                    ? '${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}'
-                                    : '날짜',
-                              ),
+                  Container(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => BowlingLanesPage()),
+                            );
+                          },
+                          icon: Icon(Icons.arrow_forward, size: 18),
+                          label: Text('레인 관리하기 화면으로 이동'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue, // 버튼의 배경색
+                            surfaceTintColor: Colors.white, // 버튼 텍스트 색
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            Icon(Icons.calendar_today),
-                          ],
+                          ),
+                        ),
+                      ],
+                    )
+
+                  ),
+                  SizedBox(height: 20,),
+                  Row(
+                    children: [
+                      Text(
+                        '날짜 선택: ',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            _selectDate(context);
+                          },
+                          child: Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  child: Text(
+                                    selectedDate != null
+                                        ? '${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}'
+                                        : '날짜',
+                                  ),
+                                ),
+                                Icon(Icons.calendar_today),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -114,10 +226,9 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
             Expanded(
               child: ListView(
                 padding: EdgeInsets.all(16.0),
-                children: [
-                  LaneScores(laneNumber: 1, players: ['위형규', '우경석', '이민지']),
-                  // Add more lanes as needed
-                ],
+                children: laneScoresData.map((lane) {
+                  return LaneScores(laneNumber: lane.laneNumber, gameScores: lane.gameScores);
+                }).toList(),
               ),
             ),
           ],
@@ -145,32 +256,31 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
   }
 }
 
-class LaneScores extends StatefulWidget {
+class LaneScoresData {
   final int laneNumber;
-  final List<String> players;
+  final List<GameScoresData> gameScores;
 
-  LaneScores({required this.laneNumber, required this.players});
-
-  @override
-  _LaneScoresState createState() => _LaneScoresState();
+  LaneScoresData({required this.laneNumber, required this.gameScores});
 }
 
-class _LaneScoresState extends State<LaneScores> {
-  List<int> games = [1, 2]; // Default 2 games
+class GameScoresData {
+  final int gameNumber;
+  final List<Player> players;
 
-  void addGame() {
-    setState(() {
-      games.add(games.length + 1);
-    });
-  }
+  GameScoresData({required this.gameNumber, required this.players});
+}
 
-  void removeGame() {
-    setState(() {
-      if (games.length > 1) {
-        games.removeLast();
-      }
-    });
-  }
+class Player {
+  final String userName;
+
+  Player({required this.userName});
+}
+
+class LaneScores extends StatelessWidget {
+  final int laneNumber;
+  final List<GameScoresData> gameScores;
+
+  LaneScores({required this.laneNumber, required this.gameScores});
 
   @override
   Widget build(BuildContext context) {
@@ -183,17 +293,17 @@ class _LaneScoresState extends State<LaneScores> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Lane ${widget.laneNumber}',
+              'Lane $laneNumber',
               style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16.0),
-            for (int gameNumber in games)
+            for (var gameScore in gameScores)
               Column(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      Text('Game $gameNumber', style: TextStyle(fontSize: 16.0)),
+                      Text('Game ${gameScore.gameNumber}', style: TextStyle(fontSize: 16.0)),
                       SizedBox(width: 16.0),
                       IconButton(
                         icon: Icon(Icons.camera_alt, size: 30),
@@ -210,14 +320,14 @@ class _LaneScoresState extends State<LaneScores> {
                       0: FixedColumnWidth(100.0),
                       1: FlexColumnWidth(),
                     },
-                    children: widget.players.map((player) {
+                    children: gameScore.players.map((player) {
                       return TableRow(
                         children: [
                           Container(
                             padding: EdgeInsets.all(8.0),
                             color: Color(0xFFF5F5F5),
                             child: Text(
-                              player,
+                              player.userName,
                               style: TextStyle(fontSize: 16.0),
                             ),
                           ),
@@ -238,22 +348,22 @@ class _LaneScoresState extends State<LaneScores> {
                   SizedBox(height: 16.0),
                 ],
               ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                ElevatedButton(
-                  onPressed: addGame,
-                  child: Text('Game 추가'),
-                ),
-                SizedBox(width: 20,),
-                ElevatedButton(
-                  onPressed: removeGame,
-                  child: Text('Game 삭제'),
-                ),
-              ],
-            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class BowlingLanesPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('레인 관리하기'),
+      ),
+      body: Center(
+        child: Text('레인 관리하기 페이지'),
       ),
     );
   }

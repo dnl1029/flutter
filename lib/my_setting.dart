@@ -151,8 +151,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _logout() async {
     await StorageCustom.delete('jwtToken'); // 토큰 삭제
-    Utils.showAlertDialog(context, '정상적으로 로그아웃 되었습니다.');
-    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => LoginScreen()), (route) => false);
+    Utils.showAlertDialog(context, '정상적으로 로그아웃 되었습니다.',onConfirmed: () {
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => LoginScreen()), (route) => false);
+    });
   }
 
   Future<void> _addMember() async {
@@ -229,8 +230,9 @@ class _SettingsPageState extends State<SettingsPage> {
           'statusYn': result['statusYn'],
           'role': result['role'],
         },);
-        Utils.showAlertDialog(context, '멤버가 정상적으로 추가되었습니다.');
-        _fetchMembers();
+        Utils.showAlertDialog(context, '멤버가 정상적으로 추가되었습니다.',onConfirmed: () {
+          _fetchMembers();
+        });
       } catch (e) {
         if (e is DioException) {
           if (e.response?.statusCode == 400 && e.response?.data['code'] == 'INVALID_PARAMETER') {
