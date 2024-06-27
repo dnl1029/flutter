@@ -1,6 +1,8 @@
+import 'package:contact/utils.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart' as dio;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'api_client.dart';
 import 'image_edit.dart';
 import 'login.dart';
 import 'main_screen.dart';
@@ -17,27 +19,9 @@ class _SettingsPageState extends State<SettingsPage> {
   String? imageFileName;
   String? role;
   bool photoPermission = false;
-  final dio.Dio _dio = dio.Dio();
+  final ApiClient _apiClient = ApiClient();
   final FlutterSecureStorage _storage = FlutterSecureStorage();
   List<Member> members = [];
-
-  _SettingsPageState() {
-    _dio.interceptors.add(dio.InterceptorsWrapper(
-      onRequest: (options, handler) {
-        print("Request[${options.method}] => PATH: ${options.path}");
-        print("Headers: ${options.headers}");
-        return handler.next(options); // continue
-      },
-      onResponse: (response, handler) {
-        print("Response[${response.statusCode}] => DATA: ${response.data}");
-        return handler.next(response); // continue
-      },
-      onError: (dio.DioError e, handler) {
-        print("Error[${e.response?.statusCode}] => MESSAGE: ${e.message}");
-        return handler.next(e); // continue
-      },
-    ));
-  }
 
   @override
   void initState() {
@@ -50,16 +34,10 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadName() async {
-    final storedToken = await _storage.read(key: 'jwtToken');
     final getNameUrl = 'https://bowling-rolling.com/api/v1/get/myName';
 
     try {
-      final getNameResponse = await _dio.get(
-        getNameUrl,
-        options: dio.Options(
-          headers: {"jwtToken": storedToken},
-        ),
-      );
+      final getNameResponse = await _apiClient.get(context,getNameUrl);
 
       if (getNameResponse.statusCode == 200 &&
           getNameResponse.data['code'] == '200') {
@@ -81,16 +59,10 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadImageFileName() async {
-    final storedToken = await _storage.read(key: 'jwtToken');
     final getImageFileNameUrl = 'https://bowling-rolling.com/api/v1/get/myImage';
 
     try {
-      final getImageFileNameResponse = await _dio.get(
-        getImageFileNameUrl,
-        options: dio.Options(
-          headers: {"jwtToken": storedToken},
-        ),
-      );
+      final getImageFileNameResponse = await _apiClient.get(context,getImageFileNameUrl);
 
       if (getImageFileNameResponse.statusCode == 200 &&
           getImageFileNameResponse.data['code'] == '200') {
@@ -107,16 +79,11 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadRole() async {
-    final storedToken = await _storage.read(key: 'jwtToken');
-    final getRole = 'https://bowling-rolling.com/api/v1/get/myRole';
+    final getRoleUrl = 'https://bowling-rolling.com/api/v1/get/myRole';
 
     try {
-      final getRoleResponse = await _dio.get(
-        getRole,
-        options: dio.Options(
-          headers: {"jwtToken": storedToken},
-        ),
-      );
+      final getRoleResponse = await _apiClient.get(context,getRoleUrl);
+
 
       if (getRoleResponse.statusCode == 200 &&
           getRoleResponse.data['code'] == '200') {
@@ -140,14 +107,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _fetchMembers() async {
-    final storedToken = await _storage.read(key: 'jwtToken');
-    print('SettingPage jwtToken : $storedToken');
-    final response = await _dio.get(
-      'https://bowling-rolling.com/api/v1/member/getAll',
-      options: dio.Options(
-        headers: {'jwtToken': storedToken},
-      ),
-    );
+    final fetchMembersUrl = 'https://bowling-rolling.com/api/v1/member/getAll';
+    final response = await _apiClient.get(context,fetchMembersUrl);
 
     setState(() {
       members = (response.data as List)
@@ -160,6 +121,7 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       photoPermission = !photoPermission;
     });
+    _apiClient.checkTokenValidity(context);
     await _storage.write(
         key: 'hasPermission', value: photoPermission.toString());
   }
@@ -168,6 +130,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final TextEditingController nameController = TextEditingController();
     nameController.text = name; // 현재 이름을 기본값으로 설정
 
+    _apiClient.checkTokenValidity(context);
     final result = await
     Navigator.push(
       context,
@@ -189,6 +152,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _logout() async {
     await _storage.delete(key: 'jwtToken'); // 토큰 삭제
+    Utils.showAlertDialog(context, '정상적으로 로그아웃 되었습니다.');
     Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => LoginScreen()), (route) => false);
   }
 
@@ -217,7 +181,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 TextField(
                   controller: imageFileNameController,
-                  decoration: InputDecoration(labelText: 'Image File'),
+                  decoration: InputDecoration(labelText: '프로필 이미지 이름'),
                 ),
                 TextField(
                   controller: statusYnController,
@@ -241,7 +205,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   'role': roleController.text,
                 });
               },
-              child: Text('추가'),
+              child: Text('저장'),
             ),
             TextButton(
               onPressed: () {
@@ -255,24 +219,21 @@ class _SettingsPageState extends State<SettingsPage> {
     );
 
     if (result != null) {
-      final storedToken = await _storage.read(key: 'jwtToken');
       final addMemberUrl = 'https://bowling-rolling.com/api/v1/member/create';
 
       try {
-        await _dio.post(
-          addMemberUrl,
-          options: dio.Options(headers: {'jwtToken': storedToken}),
-          data: {
-            'userId': int.parse(result['userId']!),
-            'userName': result['userName'],
-            'imageFileName': result['imageFileName'],
-            'statusYn': result['statusYn'],
-            'role': result['role'],
-          },
-        );
+        await _apiClient.post(context,addMemberUrl,
+        data: {
+          'userId': int.parse(result['userId']!),
+          'userName': result['userName'],
+          'imageFileName': result['imageFileName'],
+          'statusYn': result['statusYn'],
+          'role': result['role'],
+        },);
+        Utils.showAlertDialog(context, '멤버가 정상적으로 추가되었습니다.');
         _fetchMembers();
       } catch (e) {
-        if (e is dio.DioError) {
+        if (e is DioException) {
           if (e.response?.statusCode == 400 && e.response?.data['code'] == 'INVALID_PARAMETER') {
             showDialog(
               context: context,
@@ -292,9 +253,11 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             );
           } else {
+            Utils.showAlertDialog(context, '멤버 추가를 실패했습니다.');
             print('멤버 추가 실패: ${e.response?.data}');
           }
         } else {
+          Utils.showAlertDialog(context, '멤버 추가를 실패했습니다.');
           print('멤버 추가 실패: $e');
         }
       }
@@ -302,14 +265,13 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _editMembers() async {
-    final List<Member> updatedMembers = members.map((member) =>
-        Member(
-          userId: member.userId,
-          userName: member.userName,
-          imageFileName: member.imageFileName,
-          statusYn: member.statusYn,
-          role: member.role,
-        )).toList();
+    final List<Member> updatedMembers = members.map((member) => Member(
+      userId: member.userId,
+      userName: member.userName,
+      imageFileName: member.imageFileName,
+      statusYn: member.statusYn,
+      role: member.role,
+    )).toList();
 
     final result = await showDialog<List<Member>>(
       context: context,
@@ -317,11 +279,11 @@ class _SettingsPageState extends State<SettingsPage> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return Dialog(
-              insetPadding: EdgeInsets.symmetric(horizontal: 20.0),
+              insetPadding: EdgeInsets.symmetric(horizontal: 20.0), // 화면 좌우의 여백을 설정
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width - 40,
-                  maxHeight: MediaQuery.of(context).size.height * 4 / 5,
+                  maxWidth: MediaQuery.of(context).size.width * 0.9, // 전체 화면의 90% 너비로 설정
+                  maxHeight: MediaQuery.of(context).size.height * 0.8, // 전체 화면의 80% 높이로 설정
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -334,159 +296,159 @@ class _SettingsPageState extends State<SettingsPage> {
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minWidth: MediaQuery.of(context).size.width - 60,
-                                ),
-                                child: Table(
-                                  border: TableBorder.all(color: Colors.grey[300]!),
-                                  columnWidths: {
-                                    0: FlexColumnWidth(1),
-                                    1: FlexColumnWidth(2),
-                                    2: FlexColumnWidth(3),
-                                    3: FlexColumnWidth(3),
-                                    4: FlexColumnWidth(2),
-                                    5: FlexColumnWidth(2),
-                                  },
+                            Table(
+                              border: TableBorder.all(color: Colors.grey[300]!),
+                              columnWidths: {
+                                0: FlexColumnWidth(1),
+                                1: FlexColumnWidth(2),
+                                2: FlexColumnWidth(3),
+                                3: FlexColumnWidth(3),
+                                4: FlexColumnWidth(2),
+                                5: FlexColumnWidth(2),
+                              },
+                              children: [
+                                TableRow(
+                                  decoration: BoxDecoration(
+                                    color: Colors.blueGrey[50],
+                                  ),
                                   children: [
-                                    TableRow(
-                                      decoration: BoxDecoration(
-                                        color: Colors.blueGrey[50],
-                                      ),
-                                      children: [
-                                        TableCell(child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Text('순번', style: TextStyle(fontWeight: FontWeight.bold)),
-                                        )),
-                                        TableCell(child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Text('사번', style: TextStyle(fontWeight: FontWeight.bold)),
-                                        )),
-                                        TableCell(child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Text('이름', style: TextStyle(fontWeight: FontWeight.bold)),
-                                        )),
-                                        TableCell(child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Text('Image File', style: TextStyle(fontWeight: FontWeight.bold)),
-                                        )),
-                                        TableCell(child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Text('계정 상태', style: TextStyle(fontWeight: FontWeight.bold)),
-                                        )),
-                                        TableCell(child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Text('권한', style: TextStyle(fontWeight: FontWeight.bold)),
-                                        )),
-                                      ],
-                                    ),
-                                    ...updatedMembers.asMap().entries.map((entry) {
-                                      int index = entry.key;
-                                      Member member = entry.value;
-                                      return TableRow(
-                                        decoration: BoxDecoration(
-                                          color: index % 2 == 0 ? Colors.white : Colors.grey[50],
-                                        ),
-                                        children: [
-                                          TableCell(child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: Text('${index + 1}'), // 순번
-                                          )),
-                                          TableCell(child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: TextFormField(
-                                              initialValue: member.userId.toString(),
-                                              readOnly: true,
-                                              decoration: InputDecoration(
-                                                border: InputBorder.none,
-                                              ),
-                                            ),
-                                          )),
-                                          TableCell(child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: TextFormField(
-                                              initialValue: member.userName,
-                                              onChanged: (value) {
-                                                setState(() {
-                                                  member.userName = value;
-                                                });
-                                              },
-                                              decoration: InputDecoration(
-                                                border: InputBorder.none,
-                                              ),
-                                            ),
-                                          )),
-                                          TableCell(child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: TextFormField(
-                                              initialValue: member.imageFileName ?? '',
-                                              onChanged: (value) {
-                                                setState(() {
-                                                  member.imageFileName = value;
-                                                });
-                                              },
-                                              decoration: InputDecoration(
-                                                border: InputBorder.none,
-                                              ),
-                                            ),
-                                          )),
-                                          TableCell(child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: TextFormField(
-                                              initialValue: member.statusYn,
-                                              onChanged: (value) {
-                                                setState(() {
-                                                  member.statusYn = value;
-                                                });
-                                              },
-                                              decoration: InputDecoration(
-                                                border: InputBorder.none,
-                                              ),
-                                            ),
-                                          )),
-                                          TableCell(child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: TextFormField(
-                                              initialValue: member.role ?? '',
-                                              onChanged: (value) {
-                                                setState(() {
-                                                  member.role = value;
-                                                });
-                                              },
-                                              decoration: InputDecoration(
-                                                border: InputBorder.none,
-                                              ),
-                                            ),
-                                          )),
-                                        ],
-                                      );
-                                    }).toList(),
+                                    TableCell(child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text('순번', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    )),
+                                    TableCell(child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text('사번', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    )),
+                                    TableCell(child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text('이름', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    )),
+                                    TableCell(child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text('프로필 이미지 이름', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    )),
+                                    TableCell(child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text('계정 상태', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    )),
+                                    TableCell(child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text('권한', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    )),
                                   ],
                                 ),
-                              ),
+                                ...updatedMembers.asMap().entries.map((entry) {
+                                  int index = entry.key;
+                                  Member member = entry.value;
+                                  return TableRow(
+                                    decoration: BoxDecoration(
+                                      color: index % 2 == 0 ? Colors.white : Colors.grey[50],
+                                    ),
+                                    children: [
+                                      TableCell(child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text('${index + 1}'), // 순번
+                                      )),
+                                      TableCell(child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: TextFormField(
+                                          initialValue: member.userId.toString(),
+                                          readOnly: true,
+                                          decoration: InputDecoration(
+                                            border: InputBorder.none,
+                                          ),
+                                          maxLines: null, // 줄바꿈 허용
+                                        ),
+                                      )),
+                                      TableCell(child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: TextFormField(
+                                          initialValue: member.userName,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              member.userName = value;
+                                            });
+                                          },
+                                          decoration: InputDecoration(
+                                            border: InputBorder.none,
+                                          ),
+                                          maxLines: null, // 줄바꿈 허용
+                                        ),
+                                      )),
+                                      TableCell(child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: TextFormField(
+                                          initialValue: member.imageFileName ?? '',
+                                          onChanged: (value) {
+                                            setState(() {
+                                              member.imageFileName = value;
+                                            });
+                                          },
+                                          decoration: InputDecoration(
+                                            border: InputBorder.none,
+                                          ),
+                                          maxLines: null, // 줄바꿈 허용
+                                        ),
+                                      )),
+                                      TableCell(child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: TextFormField(
+                                          initialValue: member.statusYn,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              member.statusYn = value;
+                                            });
+                                          },
+                                          decoration: InputDecoration(
+                                            border: InputBorder.none,
+                                          ),
+                                          maxLines: null, // 줄바꿈 허용
+                                        ),
+                                      )),
+                                      TableCell(child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: TextFormField(
+                                          initialValue: member.role ?? '',
+                                          onChanged: (value) {
+                                            setState(() {
+                                              member.role = value;
+                                            });
+                                          },
+                                          decoration: InputDecoration(
+                                            border: InputBorder.none,
+                                          ),
+                                          maxLines: null, // 줄바꿈 허용
+                                        ),
+                                      )),
+                                    ],
+                                  );
+                                }).toList(),
+                              ],
                             ),
                           ],
                         ),
                       ),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop(updatedMembers);
-                          },
-                          child: Text('저장'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: Text('취소'),
-                        ),
-                      ],
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop(updatedMembers);
+                            },
+                            child: Text('저장'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: Text('취소'),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -507,20 +469,15 @@ class _SettingsPageState extends State<SettingsPage> {
       }).toList();
 
       if (modifiedMembers.isNotEmpty) {
-        final storedToken = await _storage.read(key: 'jwtToken');
         final editMembersUrl = 'https://bowling-rolling.com/api/v1/member/edit/all';
 
         try {
           for (var member in modifiedMembers) {
-            await _dio.post(
-              editMembersUrl,
-              options: dio.Options(
-                headers: {'jwtToken': storedToken},
-              ),
-              data: member.toJson(),
-            );
+            await _apiClient.post(context, editMembersUrl, data: member.toJson());
           }
+          Utils.showAlertDialog(context, '멤버 수정을 성공했습니다.');
         } catch (e) {
+          Utils.showAlertDialog(context, '멤버 수정을 실패했습니다.');
           print('멤버 수정 실패: $e');
         }
       }
@@ -637,20 +594,15 @@ class _SettingsPageState extends State<SettingsPage> {
     );
 
     if (result != null) {
-      final storedToken = await _storage.read(key: 'jwtToken');
       final deleteMembersUrl = 'https://bowling-rolling.com/api/v1/member/delete';
 
       try {
         for (var member in result) {
-          await _dio.post(
-            deleteMembersUrl,
-            options: dio.Options(
-              headers: {'jwtToken': storedToken},
-            ),
-            data: {'userId': member.userId},
-          );
+          await _apiClient.post(context,deleteMembersUrl,data: {'userId': member.userId});
         }
+        Utils.showAlertDialog(context, '멤버 삭제를 성공했습니다.');
       } catch (e) {
+        Utils.showAlertDialog(context, '멤버 삭제를 실패했습니다.');
         print('멤버 삭제 실패: $e');
       }
       await _fetchMembers(); // 모든 멤버 업데이트가 완료된 후 멤버 목록을 다시 로드
@@ -862,7 +814,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Text(
-                                'Image File',
+                                '프로필 이미지 이름',
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
@@ -902,7 +854,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               padding: const EdgeInsets.all(8.0),
                               child: Text(member.userName),
                             ),
-                            if (role == 'ADMIN') ...[
+                            if (role == 'ADMIN') ...<Widget>[
                               Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: Text(member.imageFileName ?? ''),
@@ -926,11 +878,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
         ),
-        // bottomNavigationBar: BottomAppBar(
-        //   child: Container(
-        //     child: Text('테스트'),
-        //   ),
-        // ),
         bottomNavigationBar: BottomAppBar(
           color: Colors.white,
           child: Container(
