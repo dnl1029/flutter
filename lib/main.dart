@@ -1,8 +1,9 @@
+import 'package:contact/storage_custom.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'permission_information.dart';
-import 'main_screen.dart';
+
 import 'login.dart';
+import 'main_screen.dart';
+import 'permission_information.dart';
 
 void main() {
   runApp(MyApp());
@@ -16,7 +17,6 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   bool _hasPermission = false;
   String? _jwtToken;
-  final FlutterSecureStorage storage = FlutterSecureStorage();
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   @override
@@ -28,8 +28,8 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _checkPermissionAndToken() async {
-    _hasPermission = (await storage.read(key: 'hasPermission')) == 'true';
-    _jwtToken = await storage.read(key: 'jwtToken');
+    _hasPermission = (await StorageCustom.read('hasPhotoPermission')) == 'true';
+    _jwtToken = await StorageCustom.read('jwtToken');
 
     if (_hasPermission) {
       if (_jwtToken == null) {

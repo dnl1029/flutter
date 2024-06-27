@@ -1,14 +1,15 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:dio/dio.dart' as dio;
 import 'dart:convert';
+
+import 'package:contact/storage_custom.dart';
+import 'package:dio/dio.dart' as dio;
+import 'package:flutter/material.dart';
+
 import 'image_edit.dart';
 import 'main_screen.dart';
 import 'name_edit.dart';
 
 class LoginScreen extends StatelessWidget {
   final TextEditingController _userIdController = TextEditingController();
-  final FlutterSecureStorage _storage = FlutterSecureStorage();
   final dio.Dio _dio = dio.Dio();
   final TextEditingController nameController = TextEditingController();
 
@@ -52,13 +53,13 @@ class LoginScreen extends StatelessWidget {
       if (response.statusCode == 200) {
         if (responseBody['code'] == '200') {
           final jwtToken = responseBody['message'].toString();
-          await _storage.write(key: 'jwtToken', value: jwtToken);
+          await StorageCustom.write('jwtToken', jwtToken);
           print('LoginScreen jwtToken : $jwtToken');
 
           final getNameUrl = 'https://bowling-rolling.com/api/v1/get/myName';
           final getImageFileNameUrl = 'https://bowling-rolling.com/api/v1/get/myImage';
 
-          final storedToken = await _storage.read(key: 'jwtToken');
+          final storedToken = await StorageCustom.read('jwtToken');
           if (storedToken == null) {
             _showAlertDialog(context, 'JWT 토큰을 가져오는 데 실패했습니다.');
             return;

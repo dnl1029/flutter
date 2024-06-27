@@ -1,10 +1,10 @@
 import 'package:contact/font_awesome_icons.dart';
 import 'package:contact/my_flutter_app_icons.dart';
+import 'package:contact/storage_custom.dart';
+import 'package:dio/dio.dart' as dio;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:dio/dio.dart' as dio;
 
 import 'login.dart';
 import 'my_setting.dart';
@@ -40,7 +40,6 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   String? jwtToken;
   String? imageFileName;
-  final FlutterSecureStorage _storage = FlutterSecureStorage();
   final dio.Dio _dio = dio.Dio();
 
   @override
@@ -51,7 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _loadJwtToken() async {
-    final storedToken = await _storage.read(key: 'jwtToken');
+    final storedToken = await StorageCustom.read('jwtToken');
     print('main_screen jwttoken : $storedToken');
     if (storedToken == null) {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
@@ -59,7 +58,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _loadImageFileName() async {
-    final storedToken = await _storage.read(key: 'jwtToken');
+    final storedToken = await StorageCustom.read('jwtToken');
     final getImageFileNameUrl = 'https://bowling-rolling.com/api/v1/get/myImage';
 
     try {

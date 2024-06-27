@@ -1,7 +1,8 @@
+import 'package:contact/storage_custom.dart';
 import 'package:contact/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import 'api_client.dart';
 import 'image_edit.dart';
 import 'login.dart';
@@ -20,7 +21,6 @@ class _SettingsPageState extends State<SettingsPage> {
   String? role;
   bool photoPermission = false;
   final ApiClient _apiClient = ApiClient();
-  final FlutterSecureStorage _storage = FlutterSecureStorage();
   List<Member> members = [];
 
   @override
@@ -100,7 +100,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadPhotoPermission() async {
-    String? permission = await _storage.read(key: 'hasPermission');
+    String? permission = await StorageCustom.read('hasPhotoPermission');
     setState(() {
       photoPermission = permission == 'true';
     });
@@ -122,8 +122,7 @@ class _SettingsPageState extends State<SettingsPage> {
       photoPermission = !photoPermission;
     });
     _apiClient.checkTokenValidity(context);
-    await _storage.write(
-        key: 'hasPermission', value: photoPermission.toString());
+    await StorageCustom.write('hasPhotoPermission',photoPermission.toString());
   }
 
   void _navigateToNameEditScreen(BuildContext context) async {
@@ -151,7 +150,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _logout() async {
-    await _storage.delete(key: 'jwtToken'); // 토큰 삭제
+    await StorageCustom.delete('jwtToken'); // 토큰 삭제
     Utils.showAlertDialog(context, '정상적으로 로그아웃 되었습니다.');
     Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => LoginScreen()), (route) => false);
   }

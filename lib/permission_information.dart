@@ -1,16 +1,16 @@
 import 'package:contact/my_flutter_app_icons.dart';
+import 'package:contact/storage_custom.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import 'main_screen.dart';
 
 class PermissionGuideScreen extends StatelessWidget {
-  final FlutterSecureStorage storage = FlutterSecureStorage();
   final GlobalKey<NavigatorState> navigatorKey;
 
   PermissionGuideScreen({required this.navigatorKey});
 
   Future<void> grantPermission() async {
-    await storage.write(key: 'hasPermission', value: 'true');
+    await StorageCustom.write('hasPhotoPermission','true');
     navigatorKey.currentState?.pushReplacement(MaterialPageRoute(builder: (context) => MainScreen()));
   }
 
@@ -75,6 +75,5 @@ class PermissionGuideScreen extends StatelessWidget {
 
     );
   }
-
 
 }

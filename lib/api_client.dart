@@ -1,19 +1,20 @@
 import 'dart:convert';
+
+import 'package:contact/storage_custom.dart';
 import 'package:contact/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import 'login.dart';
 
 class ApiClient {
-  final FlutterSecureStorage _storage = FlutterSecureStorage();
   final Dio _dio = Dio();
 
   ApiClient() {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final storedToken = await _storage.read(key: 'jwtToken');
+          final storedToken = await StorageCustom.read('jwtToken');
           options.headers["jwtToken"] = storedToken;
           print("Request[${options.method}] => PATH: ${options.path}");
           print("Headers: ${options.headers}");
@@ -53,7 +54,7 @@ class ApiClient {
   }
 
   Future<void> checkTokenValidity(BuildContext context) async {
-    final storedToken = await _storage.read(key: 'jwtToken');
+    final storedToken = await StorageCustom.read('jwtToken');
     if (storedToken == null) {
       logout(context); // Logout if token is null
       return;
@@ -84,7 +85,7 @@ class ApiClient {
   }
 
   Future<void> logout(BuildContext context) async {
-    await _storage.delete(key: 'jwtToken'); // 토큰 삭제
+    await StorageCustom.delete('jwtToken'); // 토큰 삭제
     Utils.showAlertDialog(context, '로그인이 만료되었습니다. 다시 로그인해주세요.');
     Navigator.pushAndRemoveUntil(
       context,
