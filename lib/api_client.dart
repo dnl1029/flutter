@@ -1,9 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:html' as html; // dart:html 패키지 임포트
 
 import 'package:contact/storage_custom.dart';
 import 'package:contact/utils.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http; // 추가
 
 import 'login.dart';
 
@@ -82,6 +87,40 @@ class ApiClient {
       logout(context); // Logout on network error
       print('JWT Token validation error: $e');
     }
+  }
+
+  Future<Response> uploadFile(BuildContext context, String url, dynamic file) async {
+    await checkTokenValidity(context);
+
+    FormData formData;
+
+    if (kIsWeb) {
+      final bytes = await file.readAsBytes();
+      formData = FormData.fromMap({
+        "image": MultipartFile.fromBytes(
+          bytes,
+          filename: file.name,
+        ),
+      });
+    } else {
+      Uint8List bytes = file.readAsBytesSync();
+      formData = FormData.fromMap({
+        "image": MultipartFile.fromBytes(
+          bytes,
+          filename: file.path.split('/').last,
+        ),
+      });
+    }
+
+    return _dio.post(url, data: formData);
+  }
+
+
+  Future<Uint8List> _readBlobAsUint8List(html.Blob blob) async {
+    final reader = html.FileReader();
+    reader.readAsArrayBuffer(blob);
+    await reader.onLoadEnd.first;
+    return reader.result as Uint8List;
   }
 
   Future<void> logout(BuildContext context) async {

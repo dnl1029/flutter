@@ -885,10 +885,22 @@ class _SettingsPageState extends State<SettingsPage> {
             // height: 40.0,
             child:
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
+                SizedBox(width: 32), // 왼쪽 여백
+                Spacer(),
+                IconButton(
+                  icon: Icon(Icons.home, color: Colors.black, size: 40),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MainScreen()), // MainScreen으로 이동
+                    );
+                  },
+                ),
+                Spacer(),
                 SizedBox(
-                  width: 300,
+                  width: 100,
                   height: 50,
                   child: ElevatedButton(
                     onPressed: _logout,
