@@ -182,7 +182,8 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
 
   // 업로드 버튼 클릭 시 이미지 업로드 함수 수정
   Future<void> _handleCameraAction(GameScoresData gameScore) async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+    // final XFile? image = await _picker.pickImage(source: ImageSource.camera); // 기존 코드
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery); // 수정된 코드
     if (image == null) return;
 
     setState(() {

@@ -899,20 +899,23 @@ class _SettingsPageState extends State<SettingsPage> {
                   },
                 ),
                 Spacer(),
-                SizedBox(
-                  width: 100,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _logout,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF0D47A1),
-                      surfaceTintColor: Color(0xFF0D47A1),
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 23),
+                MediaQuery(
+                  data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0), // 텍스트 스케일링 비활성화
+                  child: SizedBox(
+                    width: 120,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _logout,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF0D47A1),
+                        surfaceTintColor: Color(0xFF0D47A1),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                      ),
+                      child: Text('로그아웃', style: TextStyle(fontSize: 15)),
                     ),
-                    child: Text('로그아웃', style: TextStyle(fontSize: 16)),
                   ),
-                ),
+                )
               ],
             ),
           ),
