@@ -2,27 +2,10 @@ import 'dart:convert';
 
 import 'package:contact/my_flutter_app_icons.dart';
 import 'package:flutter/material.dart';
-import 'dart:math';
 
 import 'api_client.dart';
 import 'main_screen.dart';
 
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Bowling Lanes',
-      theme: ThemeData(
-        scaffoldBackgroundColor: Colors.white, // 기본 배경 색상을 흰색으로 설정
-      ),
-      home: BowlingLanesPage(),
-    );
-  }
-}
 
 class BowlingLanesPage extends StatefulWidget {
   @override
@@ -584,6 +567,13 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                                     } else {
                                       laneAssignments[score['userName']] = int.tryParse(value) ?? 0;
                                     }
+                                    // Update dailyScores to reflect changes
+                                    score['laneNum'] = laneAssignments[score['userName']] ?? '';
+                                    dailyScores = presentMembers.map((member) => {
+                                      'userName': member,
+                                      'laneNum': laneAssignments[member] ?? '',
+                                      'laneOrder': orderAssignments[member] ?? ''
+                                    }).toList();
                                   });
                                 },
                               )
@@ -601,6 +591,13 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                                     } else {
                                       orderAssignments[score['userName']] = int.tryParse(value) ?? 0;
                                     }
+                                    // Update dailyScores to reflect changes
+                                    score['laneOrder'] = orderAssignments[score['userName']] ?? '';
+                                    dailyScores = presentMembers.map((member) => {
+                                      'userName': member,
+                                      'laneNum': laneAssignments[member] ?? '',
+                                      'laneOrder': orderAssignments[member] ?? ''
+                                    }).toList();
                                   });
                                 },
                               )
@@ -655,6 +652,12 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
         foregroundColor: Colors.white,
       ),
       onPressed: () {
+        // Check if a date has been selected
+        if (selectedDate == null) {
+          _showErrorDialog('선택된 날짜가 없습니다.');
+          return;
+        }
+
         // Check for missing Lane or Order assignments
         bool hasMissingLane = false;
         bool hasMissingOrder = false;
