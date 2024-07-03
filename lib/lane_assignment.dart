@@ -229,7 +229,9 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
       }
     }
 
+    // 수동 입력 상태를 초기화하고 dailyScores를 업데이트
     setState(() {
+      isManuallyAssigned = false; // 수동 입력 상태 초기화
       _sortMembers();
       dailyScores = presentMembers.map((member) => {
         'userName': member,
@@ -238,6 +240,8 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
       }).toList();
     });
   }
+
+
 
   void _showRandomAssignmentDialog() async {
     int? laneCount;
@@ -567,8 +571,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                                     } else {
                                       laneAssignments[score['userName']] = int.tryParse(value) ?? 0;
                                     }
-                                    // Update dailyScores to reflect changes
-                                    score['laneNum'] = laneAssignments[score['userName']] ?? '';
+                                    // 수동 입력 시에도 변경 사항 즉시 반영
                                     dailyScores = presentMembers.map((member) => {
                                       'userName': member,
                                       'laneNum': laneAssignments[member] ?? '',
@@ -591,8 +594,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                                     } else {
                                       orderAssignments[score['userName']] = int.tryParse(value) ?? 0;
                                     }
-                                    // Update dailyScores to reflect changes
-                                    score['laneOrder'] = orderAssignments[score['userName']] ?? '';
+                                    // 수동 입력 시에도 변경 사항 즉시 반영
                                     dailyScores = presentMembers.map((member) => {
                                       'userName': member,
                                       'laneNum': laneAssignments[member] ?? '',
@@ -609,7 +611,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey),
                       ),
-                    ),
+                    )
                   ),
                 ),
               ),
