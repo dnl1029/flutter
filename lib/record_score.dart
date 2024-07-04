@@ -117,8 +117,10 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
         Utils.showAlertDialog(context, '선택된 날짜의 회원별 레인 데이터가 없습니다.'
             ,onConfirmed: () {
               Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => BowlingLanesPage()),
+                context, // context 추가
+                MaterialPageRoute(
+                  builder: (context) => BowlingLanesPage(selectedDate: selectedDate),
+                ),
               );
             });
       }
@@ -210,16 +212,32 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
 
       if (response.statusCode == 200) {
         final responseData = response.data;
-        final List<dynamic> content = responseData['content'];
+        final statusCode = responseData['status_code'];
+        final content = responseData['content'];
 
-        setState(() {
-          for (int i = 0; i < gameScore.players.length; i++) {
-            if (i < content.length) {
+        if (statusCode == "200" &&
+            content is List &&
+            content.length == gameScore.players.length &&
+            content.every((score) => score is int && score >= 0 && score <= 300)) {
+
+          // 정상 응답 처리
+          setState(() {
+            for (int i = 0; i < gameScore.players.length; i++) {
               gameScore.players[i].scoreController.text = content[i].toString();
             }
-          }
-        });
+          });
+          // 정상 응답일 때 성공 메시지 표시
+          Utils.showAlertDialog(context, "점수 업로드를 성공했습니다. 사진과 다르면 직접 수정해주세요.");
+        } else if (statusCode == "400") {
+          // 비정상 응답 5 처리: content는 문자열로 오므로 그대로 팝업에 표시
+          final errorMessage = content is String ? content : "알 수 없는 오류가 발생했습니다.";
+          Utils.showAlertDialog(context, errorMessage);
+        } else {
+          // 비정상 응답 1, 2, 3, 4 처리
+          Utils.showAlertDialog(context, "점수분석을 실패했습니다. 수동입력 해주세요.");
+        }
       } else {
+        // 기타 실패 처리
         print('Failed to upload image');
       }
     } catch (e) {

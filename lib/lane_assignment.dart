@@ -9,6 +9,11 @@ import 'package:flutter/services.dart'; // 추가
 
 
 class BowlingLanesPage extends StatefulWidget {
+  final DateTime? selectedDate; // 선택된 날짜를 전달받기 위한 변수
+
+  // 생성자에 selectedDate 추가
+  BowlingLanesPage({this.selectedDate});
+
   @override
   _BowlingLanesPageState createState() => _BowlingLanesPageState();
 }
@@ -28,6 +33,9 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
   void initState() {
     super.initState();
 
+    // 전달받은 selectedDate를 초기화
+    selectedDate = widget.selectedDate ?? DateTime.now();
+
     // 초기화 코드 추가
     presentMembers.clear();
     laneAssignments.clear();
@@ -35,8 +43,11 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
 
     // 초기 프레임 렌더링 후 날짜 선택 다이얼로그 호출
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // BuildContext를 전달하여 _selectDate 호출
-      await _selectDate(context);
+      if (widget.selectedDate == null) {
+        await _selectDate(context); // 날짜를 선택하지 않았다면 날짜 선택 다이얼로그 호출
+      } else {
+        await _fetchDailyScores(); // 날짜가 선택되어 있다면 바로 점수 데이터 불러오기
+      }
 
       // _fetchDailyScores가 dailyScores를 업데이트 한 후 이를 확인
       if (dailyScores.isEmpty) {
@@ -59,8 +70,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
         selectedDate = picked;
       });
       await _fetchDailyScores();
-      // await _checkAlignmentAndNavigate();
-      // await _fetchLaneScores();
     }
   }
 
