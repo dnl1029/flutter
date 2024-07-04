@@ -23,6 +23,10 @@ class ApiClient {
           options.headers["jwtToken"] = storedToken;
           print("Request[${options.method}] => PATH: ${options.path}");
           print("Headers: ${options.headers}");
+          // 요청 데이터 출력
+          if (options.method == 'POST') {
+            print("Request Body: ${options.data}");
+          }
           return handler.next(options); // continue
         },
         onResponse: (response, handler) {

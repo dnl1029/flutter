@@ -157,10 +157,10 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
 
       lanes.putIfAbsent(laneNum, () => {});
       lanes[laneNum]!.putIfAbsent(gameNum, () => []);
+
       Player player = Player(userName: userName);
-      if (scoreValue != null) {
-        player.scoreController.text = scoreValue;
-      }
+      player.scoreController.text = scoreValue ?? '';  // Null일 경우 빈 문자열 설정
+
       lanes[laneNum]![gameNum]!.add(player);
     }
 
