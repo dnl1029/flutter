@@ -13,14 +13,6 @@ class BowlingLanesPage extends StatefulWidget {
 }
 
 class _BowlingLanesPageState extends State<BowlingLanesPage> {
-  // final List<String> members = [
-  //   '위형규', '최상진', '강선주', '김다인', '김성훈', '김수현',
-  //   '김재위', '김지연', '김태윤', '김혜지', '남지연',
-  //   '신가인', '신현경', '안성준', '우경석', '이동현',
-  //   '이민영', '이민지', '이수경', '이수민', '이은경',
-  //   '장누리', '정만석', '정진홍', '조현익', '최은진'
-  // ];
-
   List<Map<String, dynamic>> presentMembers = [];
   bool isManuallyAssigned = false;
   Map<String, int> laneAssignments = {};
@@ -117,24 +109,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
       _showErrorDialog('점수 데이터를 가져오는데 실패했습니다.');
     }
   }
-
-
-
-  // Future<void> _fetchMembers() async {
-  //   final fetchMembersUrl = 'https://bowling-rolling.com/api/v1/member/getAll';
-  //   final response = await _apiClient.get(context, fetchMembersUrl);
-  //
-  //   if (response != null && response.statusCode == 200) {
-  //     List<dynamic> membersJson = response.data;
-  //     setState(() {
-  //       presentMembers = membersJson.map<String>((member) => member['userName'].toString()).toList();
-  //     });
-  //     // 멤버 데이터를 가져온 후에 멤버 선택 다이얼로그를 열도록 함
-  //     _showMemberSelectionDialog();
-  //   } else {
-  //     _showErrorDialog('멤버 데이터를 가져오는데 실패했습니다.');
-  //   }
-  // }
 
   void _showMemberSelectionDialog() async {
     final getMembersUrl = 'https://bowling-rolling.com/api/v1/member/getAll';
@@ -744,13 +718,10 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
           _showErrorDialog('${incorrectLaneOrders.join(', ')} Lane의 순서가 1번부터 할당되지 않았습니다.');
         } else {
           _uploadAssignments();
-          // _showSuccessDialog('레인 및 순서가 성공적으로 저장되었습니다.');
         }
       },
       child: Text('저장'),
     );
   }
-
-
-
+  
 }
