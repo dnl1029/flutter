@@ -144,9 +144,19 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
 
       setState(() {
         laneScoresData = _parseLaneScores(dailyScores);
+
+        // laneNumber와 gameNumber로 정렬
+        laneScoresData.sort((a, b) => a.laneNumber.compareTo(b.laneNumber));
+        for (var lane in laneScoresData) {
+          lane.gameScores.sort((a, b) => a.gameNumber.compareTo(b.gameNumber));
+          for (var game in lane.gameScores) {
+            game.players.sort((a, b) => a.laneOrder.compareTo(b.laneOrder));
+          }
+        }
       });
     }
   }
+
 
   List<LaneScoresData> _parseLaneScores(List<dynamic> dailyScores) {
     Map<int, Map<int, List<Player>>> lanes = {};
@@ -155,13 +165,14 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
       int laneNum = score['laneNum'];
       int gameNum = score['gameNum'];
       String userName = score['userName'];
-      String? scoreValue = score['score']?.toString();
+      int userId = score['userId'];
+      int laneOrder = score['laneOrder']; // laneOrder 추가
 
       lanes.putIfAbsent(laneNum, () => {});
       lanes[laneNum]!.putIfAbsent(gameNum, () => []);
 
-      Player player = Player(userName: userName);
-      player.scoreController.text = scoreValue ?? '';  // Null일 경우 빈 문자열 설정
+      Player player = Player(userName: userName, userId: userId, laneOrder: laneOrder);
+      player.scoreController.text = score['score']?.toString() ?? '';  // Null일 경우 빈 문자열 설정
 
       lanes[laneNum]![gameNum]!.add(player);
     }
@@ -177,6 +188,7 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
 
     return laneScoresData;
   }
+
 
   String _formatDate(DateTime date) {
     return "${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}";
@@ -249,6 +261,50 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
       });
     }
   }
+
+  Future<void> _uploadAssignments() async {
+    if (selectedDate == null) {
+      Utils.showAlertDialog(context, '날짜를 선택해주세요.');
+      return;
+    }
+
+    final String formattedDate = _formatDate(selectedDate!);
+
+    for (var lane in laneScoresData) {
+      for (var game in lane.gameScores) {
+        for (var player in game.players) {
+          if (player.scoreController.text.trim().isNotEmpty) {
+            final data = {
+              'workDt': formattedDate,
+              'userId': player.userId,
+              'gameNum': game.gameNumber,
+              'laneNum': lane.laneNumber,
+              'laneOrder': player.laneOrder, // laneOrder 사용
+              'score': int.tryParse(player.scoreController.text) ?? 0,
+            };
+
+            final url = 'https://bowling-rolling.com/api/v1/score/update/andInsert';
+
+            try {
+              final response = await _apiClient.post(context, url, data: jsonEncode(data));
+
+              if (response == null || response.statusCode != 200) {
+                Utils.showAlertDialog(context, '업로드에 실패했습니다.');
+                return;
+              }
+            } catch (e) {
+              Utils.showAlertDialog(context, '업로드 중 오류가 발생했습니다.');
+              return;
+            }
+          }
+        }
+      }
+    }
+
+    Utils.showAlertDialog(context, '점수 수정을 성공했습니다.');
+  }
+
+
 
 
   @override
@@ -397,7 +453,9 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    _uploadAssignments();  // 저장 버튼 클릭 시 호출
+                  },
                   child: Text('저장'),
                 ),
                 SizedBox(width: 16),
@@ -440,10 +498,13 @@ class GameScoresData {
 
 class Player {
   final String userName;
+  final int userId; // userId int로 수정
+  int laneOrder; // laneOrder 추가 및 초기화
   final TextEditingController scoreController = TextEditingController();
 
-  Player({required this.userName});
+  Player({required this.userName, required this.userId, required this.laneOrder});
 }
+
 
 class LaneScores extends StatelessWidget {
   final int laneNumber;
