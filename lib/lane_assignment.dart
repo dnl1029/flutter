@@ -21,7 +21,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
   //   '장누리', '정만석', '정진홍', '조현익', '최은진'
   // ];
 
-  List<String> presentMembers = [];
+  List<Map<String, dynamic>> presentMembers = [];
   bool isManuallyAssigned = false;
   Map<String, int> laneAssignments = {};
   Map<String, int> orderAssignments = {};
@@ -34,12 +34,22 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
   @override
   void initState() {
     super.initState();
+
     // 초기화 코드 추가
     presentMembers.clear();
     laneAssignments.clear();
     orderAssignments.clear();
-    // 초기 멤버 선택 다이얼로그 표시
-    _showMemberSelectionDialog();
+
+    // 초기 프레임 렌더링 후 날짜 선택 다이얼로그 호출
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // BuildContext를 전달하여 _selectDate 호출
+      await _selectDate(context);
+
+      // _fetchDailyScores가 dailyScores를 업데이트 한 후 이를 확인
+      if (dailyScores.isEmpty) {
+        _showMemberSelectionDialog();
+      }
+    });
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -81,6 +91,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
         dailyScores = scoresJson
             .where((score) => score['gameNum'] == 1)
             .map((score) => {
+          'userId': score['userId'], // userId 필드 추가
           'userName': score['userName'],
           'laneNum': score['laneNum'],
           'laneOrder': score['laneOrder']
@@ -88,7 +99,10 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
             .toList();
 
         // `dailyScores` 기반으로 `presentMembers` 갱신
-        presentMembers = dailyScores.map((score) => score['userName'].toString()).toList();
+        presentMembers = dailyScores.map((score) => {
+          'userId': score['userId'], // userId 필드 추가
+          'userName': score['userName'].toString()
+        }).toList();
 
         // `laneAssignments`와 `orderAssignments` 갱신
         laneAssignments.clear();
@@ -106,32 +120,32 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
 
 
 
-  Future<void> _fetchMembers() async {
-    final fetchMembersUrl = 'https://bowling-rolling.com/api/v1/member/getAll';
-    final response = await _apiClient.get(context, fetchMembersUrl);
-
-    if (response != null && response.statusCode == 200) {
-      List<dynamic> membersJson = response.data;
-      setState(() {
-        presentMembers = membersJson.map<String>((member) => member['userName'].toString()).toList();
-      });
-      // 멤버 데이터를 가져온 후에 멤버 선택 다이얼로그를 열도록 함
-      _showMemberSelectionDialog();
-    } else {
-      _showErrorDialog('멤버 데이터를 가져오는데 실패했습니다.');
-    }
-  }
+  // Future<void> _fetchMembers() async {
+  //   final fetchMembersUrl = 'https://bowling-rolling.com/api/v1/member/getAll';
+  //   final response = await _apiClient.get(context, fetchMembersUrl);
+  //
+  //   if (response != null && response.statusCode == 200) {
+  //     List<dynamic> membersJson = response.data;
+  //     setState(() {
+  //       presentMembers = membersJson.map<String>((member) => member['userName'].toString()).toList();
+  //     });
+  //     // 멤버 데이터를 가져온 후에 멤버 선택 다이얼로그를 열도록 함
+  //     _showMemberSelectionDialog();
+  //   } else {
+  //     _showErrorDialog('멤버 데이터를 가져오는데 실패했습니다.');
+  //   }
+  // }
 
   void _showMemberSelectionDialog() async {
     final getMembersUrl = 'https://bowling-rolling.com/api/v1/member/getAll';
     final response = await _apiClient.get(context, getMembersUrl);
     if (response.statusCode == 200) {
-      List<dynamic> members = response.data;
+      List<dynamic> membersJson = response.data;
+      List<Map<String, dynamic>> members = membersJson.map((member) => Map<String, dynamic>.from(member)).toList();
 
-      // 전체 멤버 리스트와 현재 선택된 멤버 리스트를 비교하여 체크박스 상태를 설정
       List<String> tempSelectedMembers = dailyScores.isNotEmpty
           ? dailyScores.map((score) => score['userName'].toString()).toList()
-          : List<String>.from(presentMembers);
+          : List<String>.from(presentMembers.map((member) => member['userName']));
 
       showDialog(
         context: context,
@@ -166,11 +180,13 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                     child: Text('확인'),
                     onPressed: () {
                       setState(() {
-                        presentMembers = tempSelectedMembers.toSet().toList();
+                        presentMembers = tempSelectedMembers.map((userName) =>
+                            members.firstWhere((member) => member['userName'] == userName)).toList();
                         dailyScores = presentMembers.map((member) => {
-                          'userName': member,
-                          'laneNum': laneAssignments[member] ?? '',
-                          'laneOrder': orderAssignments[member] ?? ''
+                          'userId': member['userId'],
+                          'userName': member['userName'],
+                          'laneNum': laneAssignments[member['userName']] ?? '',
+                          'laneOrder': orderAssignments[member['userName']] ?? ''
                         }).toList();
                       });
                       Navigator.of(context).pop();
@@ -215,7 +231,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
       laneSizes[i]++;
     }
 
-    List<String> shuffledMembers = List<String>.from(presentMembers)..shuffle();
+    List<Map<String, dynamic>> shuffledMembers = List<Map<String, dynamic>>.from(presentMembers)..shuffle();
     int index = 0;
 
     laneAssignments.clear();
@@ -223,25 +239,24 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
 
     for (int i = 0; i < laneCount; i++) {
       for (int j = 0; j < laneSizes[i]; j++) {
-        laneAssignments[shuffledMembers[index]] = i + 1;
-        orderAssignments[shuffledMembers[index]] = j + 1;
+        laneAssignments[shuffledMembers[index]['userName']] = i + 1;
+        orderAssignments[shuffledMembers[index]['userName']] = j + 1;
         index++;
       }
     }
 
     // 수동 입력 상태를 초기화하고 dailyScores를 업데이트
     setState(() {
-      isManuallyAssigned = false; // 수동 입력 상태 초기화
+      isManuallyAssigned = false;
       _sortMembers();
       dailyScores = presentMembers.map((member) => {
-        'userName': member,
-        'laneNum': laneAssignments[member] ?? '',
-        'laneOrder': orderAssignments[member] ?? ''
+        'userId': member['userId'], // userId 필드 추가
+        'userName': member['userName'],
+        'laneNum': laneAssignments[member['userName']] ?? '',
+        'laneOrder': orderAssignments[member['userName']] ?? ''
       }).toList();
     });
   }
-
-
 
   void _showRandomAssignmentDialog() async {
     int? laneCount;
@@ -264,18 +279,19 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                   });
                 },
               ),
-              actions: [
+              actions: <Widget>[
+                TextButton(
+                  child: Text('취소'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
                 TextButton(
                   child: Text('확인'),
                   onPressed: () {
                     if (laneCount != null && laneCount! > 0) {
-                      setState(() {
-                        _assignRandomly(laneCount!);
-                      });
                       Navigator.of(context).pop();
-                    } else {
-                      Navigator.of(context).pop();
-                      _showErrorDialog('숫자를 입력해주세요');
+                      _assignRandomly(laneCount!);
                     }
                   },
                 ),
@@ -288,39 +304,61 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
   }
 
 
-
-
   void _sortMembers() {
-    presentMembers.sort((a, b) {
-      int laneComparison = (laneAssignments[a] ?? 0).compareTo(laneAssignments[b] ?? 0);
-      if (laneComparison != 0) return laneComparison;
-      return (orderAssignments[a] ?? 0).compareTo(orderAssignments[b] ?? 0);
+    setState(() {
+      presentMembers.sort((a, b) {
+        int laneA = laneAssignments[a['userName']] ?? 0;
+        int laneB = laneAssignments[b['userName']] ?? 0;
+        if (laneA != laneB) {
+          return laneA.compareTo(laneB);
+        }
+        int orderA = orderAssignments[a['userName']] ?? 0;
+        int orderB = orderAssignments[b['userName']] ?? 0;
+        return orderA.compareTo(orderB);
+      });
     });
   }
 
   Future<void> _uploadAssignments() async {
-    List<Map<String, dynamic>> assignments = presentMembers.map((member) {
-      return {
-        'userName': member,
-        'laneNum': laneAssignments[member],
-        'laneOrder': orderAssignments[member],
-        'playYn': 'Y',
-        'gameCnt': int.tryParse(gameCountController.text) ?? 2,
-      };
-    }).toList();
-
-    final url = 'https://bowling-rolling.com/api/v1/score/laneOrder';
-    final response = await _apiClient.post(
-      context,
-      url,
-      data: jsonEncode(assignments),
-    );
-
-    if (response != null && response.statusCode == 200) {
-      _showSuccessDialog('레인 및 순서가 성공적으로 업로드되었습니다.');
-    } else {
-      _showErrorDialog('레인 및 순서 업로드에 실패했습니다.');
+    if (selectedDate == null) {
+      _showErrorDialog('날짜를 선택해주세요.');
+      return;
     }
+
+    final String formattedDate = _formatDate(selectedDate!);
+    final int gameCount = int.tryParse(gameCountController.text) ?? 2;
+
+    for (int gameNum = 1; gameNum <= gameCount; gameNum++) {
+      for (var score in dailyScores) {
+        final userId = score['userId'];
+        final laneNum = score['laneNum'];
+        final laneOrder = score['laneOrder'];
+
+        final data = {
+          'workDt': formattedDate,
+          'userId': userId,
+          'gameNum': gameNum,
+          'laneNum': laneNum,
+          'laneOrder': laneOrder,
+        };
+
+        final url = 'https://bowling-rolling.com/api/v1/score/update/andInsert';
+
+        try {
+          final response = await _apiClient.post(context, url, data: jsonEncode(data));
+
+          if (response == null || response.statusCode != 200) {
+            _showErrorDialog('업로드에 실패했습니다.');
+            return;
+          }
+        } catch (e) {
+          _showErrorDialog('업로드 중 오류가 발생했습니다.');
+          return;
+        }
+      }
+    }
+
+    _showSuccessDialog('레인 및 순서가 성공적으로 업로드되었습니다.');
   }
 
   void _showSuccessDialog(String message) {
@@ -550,9 +588,9 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                           ? dailyScores
                           : presentMembers.map((member) {
                         return {
-                          'userName': member,
-                          'laneNum': laneAssignments[member]?.toString() ?? '',
-                          'laneOrder': orderAssignments[member]?.toString() ?? ''
+                          'userName': member['userName'], // userName 필드 수정
+                          'laneNum': (laneAssignments[member['userName']] is Map) ? '' : laneAssignments[member['userName']]?.toString() ?? '',
+                          'laneOrder': (orderAssignments[member['userName']] is Map) ? '' : orderAssignments[member['userName']]?.toString() ?? ''
                         };
                       }).toList())
                           .map((score) {
@@ -571,11 +609,10 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                                     } else {
                                       laneAssignments[score['userName']] = int.tryParse(value) ?? 0;
                                     }
-                                    // 수동 입력 시에도 변경 사항 즉시 반영
                                     dailyScores = presentMembers.map((member) => {
-                                      'userName': member,
-                                      'laneNum': laneAssignments[member] ?? '',
-                                      'laneOrder': orderAssignments[member] ?? ''
+                                      'userName': member['userName'],
+                                      'laneNum': (laneAssignments[member['userName']] is Map) ? '' : laneAssignments[member['userName']]?.toString() ?? '',
+                                      'laneOrder': (orderAssignments[member['userName']] is Map) ? '' : orderAssignments[member['userName']]?.toString() ?? ''
                                     }).toList();
                                   });
                                 },
@@ -594,11 +631,10 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                                     } else {
                                       orderAssignments[score['userName']] = int.tryParse(value) ?? 0;
                                     }
-                                    // 수동 입력 시에도 변경 사항 즉시 반영
                                     dailyScores = presentMembers.map((member) => {
-                                      'userName': member,
-                                      'laneNum': laneAssignments[member] ?? '',
-                                      'laneOrder': orderAssignments[member] ?? ''
+                                      'userName': member['userName'],
+                                      'laneNum': (laneAssignments[member['userName']] is Map) ? '' : laneAssignments[member['userName']]?.toString() ?? '',
+                                      'laneOrder': (orderAssignments[member['userName']] is Map) ? '' : orderAssignments[member['userName']]?.toString() ?? ''
                                     }).toList();
                                   });
                                 },
@@ -608,14 +644,10 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                           ],
                         );
                       }).toList(),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                      ),
                     )
                   ),
                 ),
               ),
-
             ],
           ),
         ),
@@ -654,13 +686,13 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
         foregroundColor: Colors.white,
       ),
       onPressed: () {
-        // Check if a date has been selected
+        // 날짜가 선택되었는지 확인
         if (selectedDate == null) {
           _showErrorDialog('선택된 날짜가 없습니다.');
           return;
         }
 
-        // Check for missing Lane or Order assignments
+        // Lane 또는 Order 할당이 누락되었는지 확인
         bool hasMissingLane = false;
         bool hasMissingOrder = false;
         List<String> duplicatedLaneOrders = [];
@@ -669,17 +701,17 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
         Map<int, Set<int>> laneOrderMap = {};
 
         for (var member in presentMembers) {
-          if (!laneAssignments.containsKey(member) || laneAssignments[member] == 0) {
+          if (!laneAssignments.containsKey(member['userName']) || laneAssignments[member['userName']] == 0) {
             hasMissingLane = true;
             break;
           }
-          if (!orderAssignments.containsKey(member) || orderAssignments[member] == 0) {
+          if (!orderAssignments.containsKey(member['userName']) || orderAssignments[member['userName']] == 0) {
             hasMissingOrder = true;
             break;
           }
 
-          int lane = laneAssignments[member]!;
-          int order = orderAssignments[member]!;
+          int lane = laneAssignments[member['userName']]!;
+          int order = orderAssignments[member['userName']]!;
 
           if (laneOrderMap.containsKey(lane)) {
             if (laneOrderMap[lane]!.contains(order)) {
@@ -711,12 +743,14 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
         } else if (incorrectLaneOrders.isNotEmpty) {
           _showErrorDialog('${incorrectLaneOrders.join(', ')} Lane의 순서가 1번부터 할당되지 않았습니다.');
         } else {
-          _saveAssignments();
+          _uploadAssignments();
+          // _showSuccessDialog('레인 및 순서가 성공적으로 저장되었습니다.');
         }
       },
       child: Text('저장'),
     );
   }
+
 
 
 }
