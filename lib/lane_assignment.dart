@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'main_screen.dart';
+import 'package:flutter/services.dart'; // 추가
 
 
 class BowlingLanesPage extends StatefulWidget {
@@ -384,6 +385,33 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
     orderAssignments = savedOrderAssignments;
   }
 
+  // 테이블 데이터를 텍스트로 변환하는 함수 추가
+  String _convertTableToText() {
+    // 컬럼 헤더
+    StringBuffer buffer = StringBuffer();
+    buffer.write("이름    Lane     순서\n");
+
+    // 각 행 추가
+    for (var score in dailyScores.isNotEmpty ? dailyScores : presentMembers) {
+      String name = score['userName'] ?? '';
+      String laneNum = (laneAssignments[score['userName']] is Map) ? '' : laneAssignments[score['userName']]?.toString() ?? '';
+      String laneOrder = (orderAssignments[score['userName']] is Map) ? '' : orderAssignments[score['userName']]?.toString() ?? '';
+      buffer.write("$name\t$laneNum\t$laneOrder\n");
+    }
+
+    return buffer.toString();
+  }
+
+  // 텍스트 복사 함수 추가
+  void _copyTableToClipboard() {
+    String tableText = _convertTableToText();
+    Clipboard.setData(ClipboardData(text: tableText)).then((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('테이블이 클립보드에 복사되었습니다.')),
+      );
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -644,6 +672,12 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                 },
               ),
               Spacer(),
+              // 새로 추가한 복사 버튼
+              ElevatedButton(
+                onPressed: _copyTableToClipboard,
+                child: Text('데이터 복사하기'),
+              ),
+              Spacer(),
               buildSaveButton(),
               SizedBox(width: 16), // 오른쪽 여백
             ],
@@ -723,5 +757,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
       child: Text('저장'),
     );
   }
-  
+
+
 }
