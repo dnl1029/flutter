@@ -100,6 +100,13 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
         })
             .toList();
 
+        //정렬
+        dailyScores.sort((a, b) {
+          int laneNumComparison = a['laneNum'].compareTo(b['laneNum']);
+          if (laneNumComparison != 0) return laneNumComparison;
+          return a['laneOrder'].compareTo(b['laneOrder']);
+        });
+
         // `dailyScores` 기반으로 `presentMembers` 갱신
         presentMembers = dailyScores.map((score) => {
           'userId': score['userId'], // userId 필드 추가
