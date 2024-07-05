@@ -10,6 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'api_client.dart';
 import 'login.dart';
 import 'my_setting.dart';
+import 'package:intl/intl.dart'; // 날짜 포맷을 위한 패키지
 
 class MainScreen extends StatelessWidget {
   @override
@@ -397,33 +398,71 @@ class GraphSection extends StatefulWidget {
 
 class _GraphSectionState extends State<GraphSection> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  final List<FlSpot> bestScoreDataPoints = [
-    FlSpot(0, 250),
-    FlSpot(1, 200),
-    FlSpot(2, 150),
-    FlSpot(3, 200),
-    FlSpot(4, 160),
-  ];
-
-  final List<FlSpot> avgScoreDataPoints = [
-    FlSpot(0, 220),
-    FlSpot(1, 180),
-    FlSpot(2, 120),
-    FlSpot(3, 180),
-    FlSpot(4, 140),
-  ];
-
-  final Map<int, String> monthLabels = {
-    0: '23년 12월',
-    1: '24년 1월',
-    2: '24년 2월',
-  };
+  List<FlSpot> bestScoreDataPoints = [];
+  List<FlSpot> avgScoreDataPoints = [];
+  Map<int, String> monthLabels = {};
+  final ApiClient _apiClient = ApiClient();
+  int currentMonthCount = 0; // 현재 월 수를 계산하기 위한 변수
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _fetchScoreData();
+  }
+
+  Future<void> _fetchScoreData() async {
+    final scoreUrl = 'https://bowling-rolling.com/api/v1/score/myUserId';
+    DateTime startMonth = DateTime(2024, 1, 1);
+    DateTime now = DateTime.now();
+    currentMonthCount = _getMonthDifference(startMonth, now) + 1; // 현재 월 수 계산
+
+    try {
+      final response = await _apiClient.get(context, scoreUrl);
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final scores = data['scores'];
+
+        if (scores.isNotEmpty) {
+          List<FlSpot> bestScores = [];
+          List<FlSpot> avgScores = [];
+          Map<int, String> labels = {};
+
+          for (int i = 0; i < scores.length; i++) {
+            final score = scores[i];
+            final yearMonth = score['yearMonth'];
+            final year = int.parse(yearMonth.substring(0, 4));
+            final month = int.parse(yearMonth.substring(4, 6));
+            DateTime date = DateTime(year, month, 1);
+            int index = _getMonthDifference(startMonth, date);
+            final monthLabel = DateFormat('yy년 M월').format(date);
+
+            // 이미 존재하는 월의 데이터가 있으면 덮어씀
+            if (labels.containsKey(index)) {
+              continue;
+            }
+
+            bestScores.add(FlSpot(index.toDouble(), score['maxScore'].toDouble()));
+            avgScores.add(FlSpot(index.toDouble(), score['avgScore'].toDouble()));
+            labels[index] = monthLabel;
+          }
+
+          setState(() {
+            bestScoreDataPoints = bestScores;
+            avgScoreDataPoints = avgScores;
+            monthLabels = labels;
+          });
+        }
+      }
+    } catch (error) {
+      // 오류 처리
+      print("Error fetching scores: $error");
+    }
+  }
+
+
+  int _getMonthDifference(DateTime start, DateTime end) {
+    return (end.year - start.year) * 12 + end.month - start.month;
   }
 
   @override
@@ -437,8 +476,9 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
     return Section(
       title: '내 월별 점수',
       child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 16), // 좌우 마진 추가
         width: double.infinity,
-        height: 300,
+        height: 400, // 그래프 크기를 키움
         child: Column(
           children: [
             // TabBar for switching between best and average scores
@@ -476,66 +516,110 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
   }
 
   Widget _buildChart(List<FlSpot> dataPoints) {
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(show: true),
-        titlesData: FlTitlesData(
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 40,
-              getTitlesWidget: (value, meta) {
-                return Text('${value.toInt()}점');
-              },
-            ),
-          ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                return Text(monthLabels[value.toInt()] ?? '');
-              },
-            ),
-          ),
-          topTitles: AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          rightTitles: AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-        ),
-        borderData: FlBorderData(
-          show: true,
-          border: Border.all(color: Colors.black, width: 1),
-        ),
-        minX: 0,
-        maxX: 2,
-        minY: 0,
-        maxY: 300,
-        lineBarsData: [
-          LineChartBarData(
-            spots: dataPoints,
-            isCurved: true,
-            barWidth: 4,
-            isStrokeCapRound: true,
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                colors: [
-                  Colors.blue.withOpacity(0.2),
-                  Colors.blue.withOpacity(0),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16), // 그래프에 좌우 여백 추가
+      child: LineChart(
+        LineChartData(
+          extraLinesData: ExtraLinesData(horizontalLines: [
+            HorizontalLine(
+              y: 300,
+              color: Colors.red,
+              strokeWidth: 1,
+              label: HorizontalLineLabel(
+                show: true,
+                alignment: Alignment.topCenter,
+                style: TextStyle(color: Colors.black, fontSize: 12),
+                labelResolver: (line) => '300점',
               ),
             ),
+          ]),
+          gridData: FlGridData(show: true),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 60, // Y축 레이블 공간을 더 확보
+                interval: 50, // 레이블의 간격을 조정
+                getTitlesWidget: (value, meta) {
+                  if (value % 50 == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0), // Y축 레이블 여백 추가
+                      child: Text(
+                        '${value.toInt()}점',
+                        style: TextStyle(fontWeight: value == 300 ? FontWeight.bold : FontWeight.normal),
+                      ),
+                    );
+                  }
+                  return Container();
+                },
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                interval: 1,
+                getTitlesWidget: (value, _) {
+                  int intValue = value.toInt();
+                  String label = monthLabels[intValue] ?? '';
+                  if (label.isEmpty) {
+                    return Container();
+                  }
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      left: intValue == 0 ? 16.0 : 0,
+                      right: intValue == currentMonthCount - 1 ? 16.0 : 0,
+                      top: 16.0,
+                    ),
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  );
+                },
+                reservedSize: 36,
+              ),
+            ),
+            topTitles: AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
           ),
-        ],
+          borderData: FlBorderData(
+            show: true,
+            border: Border.all(color: Colors.black, width: 1),
+          ),
+          minX: -0.5,
+          maxX: currentMonthCount - 0.5, // 현재 월 수에 따라 동적 설정 및 여백 추가
+          minY: 0,
+          maxY: 310, // y축의 maxY를 310으로 설정하여 300점이 잘리지 않도록 함
+          lineBarsData: [
+            LineChartBarData(
+              spots: dataPoints,
+              isCurved: true,
+              barWidth: 4,
+              isStrokeCapRound: true,
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.blue.withOpacity(0.2),
+                    Colors.blue.withOpacity(0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
 
 class RankingSection extends StatefulWidget {
   @override
