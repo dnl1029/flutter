@@ -183,50 +183,129 @@ class Section extends StatelessWidget {
 }
 
 class UserInfo extends StatelessWidget {
-  final String? imageFileName; // Add imageFileName as a parameter
+  final String? imageFileName;
 
-  UserInfo({this.imageFileName}); // Update the constructor
+  UserInfo({this.imageFileName});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: Colors.grey[100],
-      padding: EdgeInsets.all(15),
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: CircleAvatar(
-              radius: 60,
-              backgroundImage: imageFileName != null
-                  ? AssetImage('$imageFileName')
-                  : AssetImage('default.png'), // Default image if imageFileName is null
-            ),
-            flex: 3,
+          // Profile Image Section
+          CircleAvatar(
+            radius: 45, // Increase radius for larger profile picture
+            backgroundImage: imageFileName != null
+                ? AssetImage(imageFileName!)
+                : AssetImage('default.png'), // Default image if imageFileName is null
           ),
+          SizedBox(width: 10), // Increase space between avatar and text
+
+          // User Info Section
           Expanded(
-            flex: 7,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('위형규', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                SizedBox(height: 8),
-                Text('최근 취미반 방문: 2024. 05. 16(목)', style: TextStyle(color: Colors.grey[600])),
-                SizedBox(height: 8),
+                // User Name
+                Text(
+                  '위형규',
+                  style: TextStyle(
+                    fontSize: 22, // Increased font size
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 16), // Increased space between name and scores
+
+                // Scores Row
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Icon(Icons.star, color: Colors.yellow[700], size: 20),
-                    SizedBox(width: 8),
-                    Text('최고 점수: 160', style: TextStyle(fontWeight: FontWeight.w500)),
+                    Container(
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: Colors.grey[200], // Light grey circle background
+                            child: Icon(
+                              Icons.emoji_events,
+                              size: 25,
+                              color: Colors.blue[700], // Icon color
+                            ),
+                          ),
+                          SizedBox(width: 4), // Space between icon and text
+                          Container(
+                            child: Column(
+                              children: [
+                                Text(
+                                  '최고 점수',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  '160',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: Colors.grey[200], // Light grey circle background
+                            child: Icon(
+                              Icons.score, // Using score icon for average score
+                              size: 25,
+                              color: Colors.black, // Icon color
+                            ),
+                          ),
+                          SizedBox(width: 4,),
+                          Container(
+                            child: Column(
+                              children: [
+                                Text(
+                                  '평균 점수',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  '130',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                    )
                   ],
                 ),
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.show_chart, color: Colors.blue[700], size: 20),
-                    SizedBox(width: 8),
-                    Text('평균 점수: 130', style: TextStyle(fontWeight: FontWeight.w500)),
-                  ],
+                SizedBox(height: 16), // Increased space between scores and recent visit
+
+                // Recent Visit
+                Text(
+                  '최근 취미반 방문   2024.05.16(목)',
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 14,
+                  ),
                 ),
               ],
             ),
@@ -237,22 +316,48 @@ class UserInfo extends StatelessWidget {
   }
 }
 
-class GraphSection extends StatelessWidget {
-  final List<FlSpot> dataPoints = [
-    FlSpot(0, 80),
-    FlSpot(1, 120),
-    FlSpot(2, 130),
-    FlSpot(3, 100),
-    FlSpot(4, 170),
+
+class GraphSection extends StatefulWidget {
+  @override
+  _GraphSectionState createState() => _GraphSectionState();
+}
+
+class _GraphSectionState extends State<GraphSection> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  final List<FlSpot> bestScoreDataPoints = [
+    FlSpot(0, 250),
+    FlSpot(1, 200),
+    FlSpot(2, 150),
+    FlSpot(3, 200),
+    FlSpot(4, 160),
+  ];
+
+  final List<FlSpot> avgScoreDataPoints = [
+    FlSpot(0, 220),
+    FlSpot(1, 180),
+    FlSpot(2, 120),
+    FlSpot(3, 180),
+    FlSpot(4, 140),
   ];
 
   final Map<int, String> monthLabels = {
-    0: '23년12월',
-    1: '24년01월',
-    2: '24년02월',
-    3: '24년03월',
-    4: '24년04월',
+    0: '23년 12월',
+    1: '24년 1월',
+    2: '24년 2월',
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -263,68 +368,32 @@ class GraphSection extends StatelessWidget {
         height: 300,
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(child: GraphOption(text: '최고 점수 기준', isSelected: true)),
-                Expanded(child: GraphOption(text: '평균 점수 기준', isSelected: false)),
+            // TabBar for switching between best and average scores
+            TabBar(
+              controller: _tabController,
+              tabs: [
+                Tab(
+                  text: '최고 점수 기준',
+                ),
+                Tab(
+                  text: '평균 점수 기준',
+                ),
               ],
+              labelColor: Colors.blue,
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: Colors.blue,
+              indicatorWeight: 3.0,
             ),
             SizedBox(height: 16),
+
+            // TabBarView to display the corresponding chart
             Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Container(
-                  width: dataPoints.length * 100.0, // Adjust the width to allow for scrolling
-                  height: 400,
-                  child: LineChart(
-                    LineChartData(
-                      gridData: FlGridData(show: true),
-                      titlesData: FlTitlesData(
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 40, // Increase the width of the left labels
-                            getTitlesWidget: (value, meta) {
-                              return Text('${value.toInt()}점');
-                            },
-                          ),
-                        ),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            interval: 1, // Set interval to 1 month
-                            getTitlesWidget: (value, meta) {
-                              return Text(monthLabels[value.toInt()] ?? '');
-                            },
-                          ),
-                        ),
-                        topTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        rightTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                      ),
-                      borderData: FlBorderData(
-                        show: true,
-                        border: Border.all(color: Colors.black, width: 1),
-                      ),
-                      minX: 0,
-                      maxX: dataPoints.length - 1,
-                      minY: 0,
-                      maxY: 300,
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: dataPoints,
-                          isCurved: true,
-                          barWidth: 4,
-                          isStrokeCapRound: true,
-                          belowBarData: BarAreaData(show: false),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildChart(bestScoreDataPoints), // Chart for best scores
+                  _buildChart(avgScoreDataPoints), // Chart for average scores
+                ],
               ),
             ),
           ],
@@ -332,65 +401,171 @@ class GraphSection extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildChart(List<FlSpot> dataPoints) {
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(show: true),
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                return Text('${value.toInt()}점');
+              },
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                return Text(monthLabels[value.toInt()] ?? '');
+              },
+            ),
+          ),
+          topTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(color: Colors.black, width: 1),
+        ),
+        minX: 0,
+        maxX: 2,
+        minY: 0,
+        maxY: 300,
+        lineBarsData: [
+          LineChartBarData(
+            spots: dataPoints,
+            isCurved: true,
+            barWidth: 4,
+            isStrokeCapRound: true,
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [
+                  Colors.blue.withOpacity(0.2),
+                  Colors.blue.withOpacity(0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class RankingSection extends StatelessWidget {
+class RankingSection extends StatefulWidget {
+  @override
+  _RankingSectionState createState() => _RankingSectionState();
+}
+
+class _RankingSectionState extends State<RankingSection> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Section(
       title: '취미반 랭킹',
-      icon: Icon(FontAwesome.crown,color: Color(0xFFFFD700)),
+      icon: Icon(FontAwesome.crown, color: Color(0xFFFFD700)),
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(child: RankingOption(text: '최고 점수 기준', isSelected: true)),
-              Expanded(child: RankingOption(text: '평균 점수 기준', isSelected: false)),
+          TabBar(
+            controller: _tabController,
+            indicatorColor: Colors.blue,
+            labelColor: Colors.blue,
+            unselectedLabelColor: Colors.grey,
+            tabs: [
+              Tab(text: '최고 점수 기준'),
+              Tab(text: '평균 점수 기준'),
             ],
           ),
           SizedBox(height: 16),
           Container(
-            width: double.infinity,
-            child: DataTable(
-              columns: [
-                DataColumn(
-                  label: Text(
-                    '순위',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    '점수',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    '이름',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-              rows: [
-                DataRow(cells: [
-                  DataCell(Text('1')),
-                  DataCell(Text('190')),
-                  DataCell(Text('위형규')),
-                ]),
-                DataRow(cells: [
-                  DataCell(Text('2')),
-                  DataCell(Text('180')),
-                  DataCell(Text('우경석')),
-                ]),
-                DataRow(cells: [
-                  DataCell(Text('3')),
-                  DataCell(Text('170')),
-                  DataCell(Text('이민지')),
-                ]),
+            height: 300,
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                RankingTable(rankingType: '최고 점수 기준'),
+                RankingTable(rankingType: '평균 점수 기준'),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class RankingTable extends StatelessWidget {
+  final String rankingType;
+
+  RankingTable({required this.rankingType});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      child: DataTable(
+        columnSpacing: 32,
+        headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[200]!),
+        columns: [
+          DataColumn(
+            label: Text(
+              '순위',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          DataColumn(
+            label: Text(
+              '점수',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          DataColumn(
+            label: Text(
+              '이름',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+        rows: [
+          DataRow(cells: [
+            DataCell(Text('1')),
+            DataCell(Text('190')),
+            DataCell(Text('위형규')),
+          ]),
+          DataRow(cells: [
+            DataCell(Text('2')),
+            DataCell(Text('180')),
+            DataCell(Text('우경석')),
+          ]),
+          DataRow(cells: [
+            DataCell(Text('3')),
+            DataCell(Text('170')),
+            DataCell(Text('이민지')),
+          ]),
         ],
       ),
     );
@@ -430,34 +605,28 @@ class _RecordsSectionState extends State<RecordsSection> {
           SizedBox(height: 16),
           Row(
             children: [
-              Text(
-                '날짜 선택: ',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(width: 8),
               Expanded(
                 child: InkWell(
                   onTap: () {
                     _selectDate(context);
                   },
                   child: Container(
-                    height: 40,
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    height: 50,
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            selectedDate != null
-                                ? '${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}'
-                                : '날짜',
-                          ),
+                        Text(
+                          selectedDate != null
+                              ? '${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}'
+                              : '날짜 선택',
+                          style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                         ),
-                        Icon(Icons.calendar_today),
+                        Icon(Icons.calendar_today, color: Colors.grey[700]),
                       ],
                     ),
                   ),
@@ -468,59 +637,46 @@ class _RecordsSectionState extends State<RecordsSection> {
           SizedBox(height: 16),
           Container(
             width: double.infinity,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: [
-                  DataColumn(
-                    label: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: 40,
-                        minWidth: 40,
-                      ),
-                      child: Text('이름', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
+            child: DataTable(
+              columnSpacing: 24,
+              headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[200]!),
+              columns: [
+                DataColumn(
+                  label: Text(
+                    '이름',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  DataColumn(
-                    label: Text(
-                      'Round 1',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Game 1',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  DataColumn(
-                    label: Text(
-                      'Round 2',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Game 2',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  DataColumn(
-                    label: Text(
-                      'Round 3',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-                rows: [
-                  DataRow(cells: [
-                    DataCell(Text('위형규')),
-                    DataCell(Text('90')),
-                    DataCell(Text('100')),
-                    DataCell(Text('120')),
-                  ]),
-                  DataRow(cells: [
-                    DataCell(Text('우경석')),
-                    DataCell(Text('80')),
-                    DataCell(Text('95')),
-                    DataCell(Text('110')),
-                  ]),
-                  DataRow(cells: [
-                    DataCell(Text('이민지')),
-                    DataCell(Text('85')),
-                    DataCell(Text('90')),
-                    DataCell(Text('105')),
-                  ]),
-                ],
-              ),
+                ),
+              ],
+              rows: [
+                DataRow(cells: [
+                  DataCell(Text('위형규')),
+                  DataCell(Text('90')),
+                  DataCell(Text('100')),
+                ]),
+                DataRow(cells: [
+                  DataCell(Text('우경석')),
+                  DataCell(Text('80')),
+                  DataCell(Text('95')),
+                ]),
+                DataRow(cells: [
+                  DataCell(Text('이민지')),
+                  DataCell(Text('85')),
+                  DataCell(Text('90')),
+                ]),
+              ],
             ),
           ),
         ],
@@ -579,10 +735,22 @@ class Footer extends StatelessWidget {
       padding: EdgeInsets.all(24),
       child: Center(
         child: ElevatedButton(
-          onPressed: () => {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => BowlingScoresApp()))
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => BowlingScoresApp()));
           },
-          child: Text('점수 기록하기'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFF0D47A1),
+            surfaceTintColor: Color(0xFF0D47A1),
+            foregroundColor: Colors.white,
+            minimumSize: Size(double.infinity, 50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: Text(
+            '점수 기록하기',
+            style: TextStyle(fontSize: 16),
+          ),
         ),
       ),
     );
