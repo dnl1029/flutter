@@ -7,6 +7,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'api_client.dart';
 import 'login.dart';
 import 'my_setting.dart';
 
@@ -41,7 +42,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   String? jwtToken;
   String? imageFileName;
-  final dio.Dio _dio = dio.Dio();
+  final ApiClient _apiClient = ApiClient();
 
   @override
   void initState() {
@@ -59,20 +60,16 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _loadImageFileName() async {
-    final storedToken = await StorageCustom.read('jwtToken');
     final getImageFileNameUrl = 'https://bowling-rolling.com/api/v1/get/myImage';
 
     try {
-      final getImageFileNameResponse = await _dio.get(
-        getImageFileNameUrl,
-        options: dio.Options(
-          headers: {"jwtToken": storedToken},
-        ),
-      );
+      final getImageFileNameResponse = await _apiClient.get(context,getImageFileNameUrl);
 
-      if (getImageFileNameResponse.statusCode == 200 && getImageFileNameResponse.data['code'] == '200') {
+      if (getImageFileNameResponse.statusCode == 200 &&
+          getImageFileNameResponse.data['code'] == '200') {
         setState(() {
-          imageFileName = getImageFileNameResponse.data['message']; // API에서 정상적으로 imageFileName 가져옴
+          imageFileName = getImageFileNameResponse
+              .data['message']; // API에서 정상적으로 imageFileName 가져옴
         });
       } else {
         print('이미지 가져오기 실패: ${getImageFileNameResponse.data['message']}');
@@ -186,9 +183,88 @@ class UserInfo extends StatelessWidget {
   final String? imageFileName;
 
   UserInfo({this.imageFileName});
+  final ApiClient _apiClient = ApiClient();
+
+  Future<Map<String, dynamic>> _fetchProfile(BuildContext context) async {
+    final profileUrl = 'https://bowling-rolling.com/api/v1/get/myProfile';
+
+    try {
+      final response = await _apiClient.get(context, profileUrl);
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        if (response.statusCode == 400 && response.data['code'] == 'INVALID_PARAMETER') {
+          return {'error': true};
+        } else {
+          throw Exception('Failed to load profile: ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      print('Error fetching profile: $e');
+      return {'error': true}; // 에러 발생 시 error 플래그를 설정합니다.
+    }
+  }
+
+  Future<String?> _fetchName(BuildContext context) async {
+    final nameUrl = 'https://bowling-rolling.com/api/v1/get/myName';
+
+    try {
+      final response = await _apiClient.get(context, nameUrl);
+      if (response.statusCode == 200) {
+        return response.data['message'];
+      } else {
+        throw Exception('Failed to load name: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching name: $e');
+      return '-';
+    }
+  }
+
+  String formatVisitDay(String? lastVisitDay) {
+    if (lastVisitDay == null) return '-';
+    DateTime date = DateTime.parse(lastVisitDay);
+    List<String> weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+    return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}(${weekdays[date.weekday - 1]})';
+  }
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _fetchProfile(context),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return CircularProgressIndicator();
+        } else if (snapshot.hasError || (snapshot.hasData && snapshot.data!['error'] == true)) {
+          // 에러가 발생한 경우 이름을 대체 URL에서 가져오고 나머지 값을 '-'로 설정
+          return FutureBuilder<String?>(
+            future: _fetchName(context),
+            builder: (context, nameSnapshot) {
+              if (nameSnapshot.connectionState == ConnectionState.waiting) {
+                return CircularProgressIndicator();
+              } else if (nameSnapshot.hasError) {
+                return Text('Error: ${nameSnapshot.error}');
+              } else {
+                var userName = nameSnapshot.data ?? '-';
+                return _buildUserInfo(context, userName, '-', '-', '-');
+              }
+            },
+          );
+        } else if (!snapshot.hasData) {
+          return Text('No data');
+        } else {
+          var profileData = snapshot.data!;
+          var userName = profileData['userName'] ?? '-';
+          var maxScore = profileData['maxScore']?.toString() ?? '-';
+          var avgScore = profileData['avgScore']?.toString() ?? '-';
+          var lastVisitDay = formatVisitDay(profileData['lastVisitDay']);
+          return _buildUserInfo(context, userName, maxScore, avgScore, lastVisitDay);
+        }
+      },
+    );
+  }
+
+  Widget _buildUserInfo(BuildContext context, String userName, String maxScore, String avgScore, String lastVisitDay) {
     return Container(
       width: double.infinity,
       color: Colors.white,
@@ -198,13 +274,12 @@ class UserInfo extends StatelessWidget {
         children: [
           // Profile Image Section
           CircleAvatar(
-            radius: 45, // Increase radius for larger profile picture
+            radius: 50,
             backgroundImage: imageFileName != null
                 ? AssetImage(imageFileName!)
-                : AssetImage('default.png'), // Default image if imageFileName is null
+                : AssetImage('default.png'),
           ),
-          SizedBox(width: 10), // Increase space between avatar and text
-
+          SizedBox(width: 10),
           // User Info Section
           Expanded(
             child: Column(
@@ -212,14 +287,13 @@ class UserInfo extends StatelessWidget {
               children: [
                 // User Name
                 Text(
-                  '위형규',
+                  userName,
                   style: TextStyle(
-                    fontSize: 22, // Increased font size
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 16), // Increased space between name and scores
-
+                SizedBox(height: 16),
                 // Scores Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -229,14 +303,14 @@ class UserInfo extends StatelessWidget {
                         children: [
                           CircleAvatar(
                             radius: 20,
-                            backgroundColor: Colors.grey[200], // Light grey circle background
+                            backgroundColor: Colors.grey[200],
                             child: Icon(
                               Icons.emoji_events,
                               size: 25,
-                              color: Colors.blue[700], // Icon color
+                              color: Colors.blue[700],
                             ),
                           ),
-                          SizedBox(width: 4), // Space between icon and text
+                          SizedBox(width: 4),
                           Container(
                             child: Column(
                               children: [
@@ -249,7 +323,7 @@ class UserInfo extends StatelessWidget {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  '160',
+                                  maxScore,
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -262,14 +336,14 @@ class UserInfo extends StatelessWidget {
                           SizedBox(width: 10),
                           CircleAvatar(
                             radius: 20,
-                            backgroundColor: Colors.grey[200], // Light grey circle background
+                            backgroundColor: Colors.grey[200],
                             child: Icon(
-                              Icons.score, // Using score icon for average score
+                              Icons.score,
                               size: 25,
-                              color: Colors.black, // Icon color
+                              color: Colors.black,
                             ),
                           ),
-                          SizedBox(width: 4,),
+                          SizedBox(width: 4),
                           Container(
                             child: Column(
                               children: [
@@ -282,7 +356,7 @@ class UserInfo extends StatelessWidget {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  '130',
+                                  avgScore,
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -291,17 +365,16 @@ class UserInfo extends StatelessWidget {
                                 ),
                               ],
                             ),
-                          )
+                          ),
                         ],
                       ),
                     )
                   ],
                 ),
-                SizedBox(height: 16), // Increased space between scores and recent visit
-
+                SizedBox(height: 16),
                 // Recent Visit
                 Text(
-                  '최근 취미반 방문   2024.05.16(목)',
+                  '최근 취미반 방문   $lastVisitDay',
                   style: TextStyle(
                     color: Colors.grey[500],
                     fontSize: 14,

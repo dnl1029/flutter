@@ -15,7 +15,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  bool _hasPermission = false;
+  // bool _hasPermission = false;
   String? _jwtToken;
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -28,17 +28,24 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _checkPermissionAndToken() async {
-    _hasPermission = (await StorageCustom.read('hasPhotoPermission')) == 'true';
-    _jwtToken = await StorageCustom.read('jwtToken');
+    // _hasPermission = (await StorageCustom.read('hasPhotoPermission')) == 'true';
+    // _jwtToken = await StorageCustom.read('jwtToken');
+    //
+    // if (_hasPermission) {
+    //   if (_jwtToken == null) {
+    //     navigatorKey.currentState?.pushReplacement(MaterialPageRoute(builder: (context) => LoginScreen()));
+    //   } else {
+    //     navigatorKey.currentState?.pushReplacement(MaterialPageRoute(builder: (context) => MainScreen()));
+    //   }
+    // } else {
+    //   navigatorKey.currentState?.pushReplacement(MaterialPageRoute(builder: (context) => PermissionGuideScreen(navigatorKey: navigatorKey)));
+    // }
 
-    if (_hasPermission) {
-      if (_jwtToken == null) {
-        navigatorKey.currentState?.pushReplacement(MaterialPageRoute(builder: (context) => LoginScreen()));
-      } else {
-        navigatorKey.currentState?.pushReplacement(MaterialPageRoute(builder: (context) => MainScreen()));
-      }
+    _jwtToken = await StorageCustom.read('jwtToken');
+    if (_jwtToken == null) {
+      navigatorKey.currentState?.pushReplacement(MaterialPageRoute(builder: (context) => LoginScreen()));
     } else {
-      navigatorKey.currentState?.pushReplacement(MaterialPageRoute(builder: (context) => PermissionGuideScreen(navigatorKey: navigatorKey)));
+      navigatorKey.currentState?.pushReplacement(MaterialPageRoute(builder: (context) => MainScreen()));
     }
   }
 
