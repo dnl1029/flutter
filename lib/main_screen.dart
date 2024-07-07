@@ -898,56 +898,62 @@ class _RecordsSectionState extends State<RecordsSection> {
   Widget build(BuildContext context) {
     return Section(
       title: '취미반 볼링 기록',
-      child: Column(
-        children: [
-          SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () {
-                    _selectDate(context);
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    height: 50,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          selectedDate != null
-                              ? '${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}'
-                              : '날짜 선택',
-                          style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                        ),
-                        Icon(Icons.calendar_today, color: Colors.grey[700]),
-                      ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: Column(
+          children: [
+            SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      _selectDate(context);
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      height: 50,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            selectedDate != null
+                                ? '${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}'
+                                : '날짜 선택',
+                            style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                          ),
+                          Icon(Icons.calendar_today, color: Colors.grey[700]),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            child: DataTable(
-              columnSpacing: 24,
-              headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[100]!),
-              border: TableBorder(
-                top: BorderSide(width: 1.5, color: Colors.black),
-                verticalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
-                horizontalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
-              ),
-              columns: _buildColumns(), // Dynamic column generation
-              rows: _buildRows(), // Row data generation
+              ],
             ),
-          ),
-        ],
+            SizedBox(height: 16),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
+                child: DataTable(
+                  columnSpacing: 24,
+                  headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[100]!),
+                  border: TableBorder(
+                    top: BorderSide(width: 1.5, color: Colors.black),
+                    verticalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
+                    horizontalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
+                  ),
+                  columns: _buildColumns(),
+                  rows: _buildRows(),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -963,22 +969,27 @@ class _RecordsSectionState extends State<RecordsSection> {
       ),
     ];
 
-    // Assuming dailyScores is not null or empty
+    // dailyScores가 비어있지 않다고 가정
     if (dailyScores.isNotEmpty) {
       Set<int> gameNums = dailyScores.map((score) => score['gameNum'] as int).toSet();
       List<int> sortedGameNums = gameNums.toList()..sort();
 
-      sortedGameNums.forEach((gameNum) {
+      for (int gameNum in sortedGameNums) {
         columns.add(
           DataColumn(
-            label: Text(
-              'Game $gameNum',
-              style: TextStyle(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
+            label: Container(
+              width: 100, // Adjust width as needed
+              child: Center(
+                child: Text(
+                  'Game $gameNum',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ),
           ),
         );
-      });
+      }
     }
 
     return columns;
@@ -987,62 +998,33 @@ class _RecordsSectionState extends State<RecordsSection> {
   List<DataRow> _buildRows() {
     List<DataRow> rows = [];
 
+    // 사용자별 행을 저장하는 맵
+    Map<String, List<DataCell>> userRows = {};
+
     dailyScores.forEach((score) {
       String userName = score['userName'] as String;
       int gameNum = score['gameNum'] as int;
       int scoreValue = score['score'] as int;
 
-      // Find or create row for userName
-      DataRow? existingRow = rows.firstWhereOrNull((row) =>
-      row.cells.first.child is Text &&
-          (row.cells.first.child as Text).data == userName);
+      // 사용자별 행 초기화 또는 가져오기
+      userRows.putIfAbsent(userName, () => [
+        DataCell(Text(userName)),
+        // 각 gameNum에 대한 빈 셀 초기화
+        ...List<DataCell>.generate(_buildColumns().length - 1, (_) => DataCell(Text('')))
+      ]);
 
-      if (existingRow != null) {
-        // Update existing row with new score
-        int columnIndex = gameNum;
-        if (columnIndex >= 3) return; // Skip beyond Game 2
-        List<DataCell> newCells = List.from(existingRow.cells);
-        newCells[columnIndex] = DataCell(
-          Text(
-            scoreValue.toString(),
-            textAlign: TextAlign.center,
-          ),
-        );
-        rows[rows.indexOf(existingRow)] = DataRow(cells: newCells);
-      } else {
-        // Create new row for userName
-        List<DataCell> cells = [
-          DataCell(
-            Text(userName),
-          ),
-        ];
+      // 사용자의 행에서 적절한 위치(gameNum)의 점수 업데이트
+      userRows[userName]![gameNum] = DataCell(Text(scoreValue.toString()));
+    });
 
-        // Initialize cells for Game 1 and Game 2
-        for (int i = 1; i <= 2; i++) {
-          int currentGameNum = i;
-          if (gameNum == currentGameNum) {
-            cells.add(
-              DataCell(
-                Text(
-                  scoreValue.toString(),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            );
-          } else {
-            cells.add(DataCell(Text('')));
-          }
-        }
-
-        rows.add(DataRow(cells: cells));
-      }
+    // 맵을 DataRow 객체로 변환
+    userRows.forEach((userName, cells) {
+      rows.add(DataRow(cells: cells));
     });
 
     return rows;
   }
 }
-
-
 
 
 class RankingOption extends StatelessWidget {
