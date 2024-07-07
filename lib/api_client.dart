@@ -119,14 +119,6 @@ class ApiClient {
     return _dio.post(url, data: formData);
   }
 
-
-  Future<Uint8List> _readBlobAsUint8List(html.Blob blob) async {
-    final reader = html.FileReader();
-    reader.readAsArrayBuffer(blob);
-    await reader.onLoadEnd.first;
-    return reader.result as Uint8List;
-  }
-
   Future<void> logout(BuildContext context) async {
     await StorageCustom.delete('jwtToken'); // 토큰 삭제
     Utils.showAlertDialog(context, '로그인이 만료되었습니다. 다시 로그인해주세요.',onConfirmed: (){

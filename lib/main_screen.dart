@@ -2,15 +2,14 @@ import 'package:contact/font_awesome_icons.dart';
 import 'package:contact/my_flutter_app_icons.dart';
 import 'package:contact/record_score.dart';
 import 'package:contact/storage_custom.dart';
-import 'package:dio/dio.dart' as dio;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart'; // 날짜 포맷을 위한 패키지
 
 import 'api_client.dart';
 import 'login.dart';
 import 'my_setting.dart';
-import 'package:intl/intl.dart'; // 날짜 포맷을 위한 패키지
 
 class MainScreen extends StatelessWidget {
   @override
@@ -280,7 +279,7 @@ class UserInfo extends StatelessWidget {
                 ? AssetImage(imageFileName!)
                 : AssetImage('default.png'),
           ),
-          SizedBox(width: 10),
+          // SizedBox(width: 0),
           // User Info Section
           Expanded(
             child: Column(
@@ -402,20 +401,19 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
   List<FlSpot> avgScoreDataPoints = [];
   Map<int, String> monthLabels = {};
   final ApiClient _apiClient = ApiClient();
-  int currentMonthCount = 0; // 현재 월 수를 계산하기 위한 변수
+  int selectedYear = DateTime.now().year;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _fetchScoreData();
+    _fetchScoreData(selectedYear);
   }
 
-  Future<void> _fetchScoreData() async {
-    final scoreUrl = 'https://bowling-rolling.com/api/v1/score/myUserId';
-    DateTime startMonth = DateTime(2024, 1, 1);
-    DateTime now = DateTime.now();
-    currentMonthCount = _getMonthDifference(startMonth, now) + 1; // 현재 월 수 계산
+  Future<void> _fetchScoreData(int year) async {
+    final scoreUrl = 'https://bowling-rolling.com/api/v1/score/myUserId?year=$year';
+    DateTime startMonth = DateTime(year, 1, 1);
+    DateTime endMonth = DateTime(year, 12, 31);
 
     try {
       final response = await _apiClient.get(context, scoreUrl);
@@ -434,17 +432,14 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
             final year = int.parse(yearMonth.substring(0, 4));
             final month = int.parse(yearMonth.substring(4, 6));
             DateTime date = DateTime(year, month, 1);
-            int index = _getMonthDifference(startMonth, date);
-            final monthLabel = DateFormat('yy년 M월').format(date);
+            int index = month - 1;  // 월을 0부터 11까지 설정
+            final monthLabel = DateFormat('M월').format(date);
 
-            // 이미 존재하는 월의 데이터가 있으면 덮어씀
-            if (labels.containsKey(index)) {
-              continue;
+            if (!labels.containsKey(index)) {
+              bestScores.add(FlSpot(index.toDouble(), score['maxScore'].toDouble()));
+              avgScores.add(FlSpot(index.toDouble(), score['avgScore'].toDouble()));
+              labels[index] = monthLabel;
             }
-
-            bestScores.add(FlSpot(index.toDouble(), score['maxScore'].toDouble()));
-            avgScores.add(FlSpot(index.toDouble(), score['avgScore'].toDouble()));
-            labels[index] = monthLabel;
           }
 
           setState(() {
@@ -455,14 +450,8 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
         }
       }
     } catch (error) {
-      // 오류 처리
       print("Error fetching scores: $error");
     }
-  }
-
-
-  int _getMonthDifference(DateTime start, DateTime end) {
-    return (end.year - start.year) * 12 + end.month - start.month;
   }
 
   @override
@@ -476,21 +465,48 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
     return Section(
       title: '내 월별 점수',
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 16), // 좌우 마진 추가
+        // margin: EdgeInsets.symmetric(horizontal: 16),
         width: double.infinity,
-        height: 400, // 그래프 크기를 키움
+        height: 400,
         child: Column(
           children: [
-            // TabBar for switching between best and average scores
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0, top: 16.0),
+              child: Row(
+                children: [
+                  Text(
+                    '년도 선택',
+                    style: TextStyle(fontSize: 16
+                        // , fontWeight: FontWeight.bold
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  DropdownButton<int>(
+                    value: selectedYear,
+                    onChanged: (int? newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          selectedYear = newValue;
+                          _fetchScoreData(selectedYear);
+                        });
+                      }
+                    },
+                    items: List.generate(10, (index) => DateTime.now().year - index)
+                        .map<DropdownMenuItem<int>>((int year) {
+                      return DropdownMenuItem<int>(
+                        value: year,
+                        child: Text(year.toString(), style: TextStyle(fontSize: 16)),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
             TabBar(
               controller: _tabController,
               tabs: [
-                Tab(
-                  text: '최고 점수 기준',
-                ),
-                Tab(
-                  text: '평균 점수 기준',
-                ),
+                Tab(text: '최고 점수 기준'),
+                Tab(text: '평균 점수 기준'),
               ],
               labelColor: Colors.blue,
               unselectedLabelColor: Colors.grey,
@@ -498,14 +514,12 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
               indicatorWeight: 3.0,
             ),
             SizedBox(height: 16),
-
-            // TabBarView to display the corresponding chart
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildChart(bestScoreDataPoints), // Chart for best scores
-                  _buildChart(avgScoreDataPoints), // Chart for average scores
+                  _buildChart(bestScoreDataPoints),
+                  _buildChart(avgScoreDataPoints),
                 ],
               ),
             ),
@@ -517,103 +531,117 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
 
   Widget _buildChart(List<FlSpot> dataPoints) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16), // 그래프에 좌우 여백 추가
-      child: LineChart(
-        LineChartData(
-          extraLinesData: ExtraLinesData(horizontalLines: [
-            HorizontalLine(
-              y: 300,
-              color: Colors.red,
-              strokeWidth: 1,
-              label: HorizontalLineLabel(
-                show: true,
-                alignment: Alignment.topCenter,
-                style: TextStyle(color: Colors.black, fontSize: 12),
-                labelResolver: (line) => '300점',
-              ),
+      padding: const EdgeInsets.symmetric(horizontal: 8), // 여백을 줄임
+      child: Container(
+        width: double.infinity,
+        child: LineChart(
+          LineChartData(
+            gridData: FlGridData(
+              show: true,
+              drawVerticalLine: true,
+              drawHorizontalLine: true,
+              verticalInterval: 1,
+              horizontalInterval: 50,
+              getDrawingVerticalLine: (value) {
+                return FlLine(
+                  color: Colors.grey[200]!,
+                  strokeWidth: 1,
+                );
+              },
+              getDrawingHorizontalLine: (value) {
+                return FlLine(
+                  color: Colors.grey[200]!,
+                  strokeWidth: 1,
+                );
+              },
             ),
-          ]),
-          gridData: FlGridData(show: true),
-          titlesData: FlTitlesData(
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 60, // Y축 레이블 공간을 더 확보
-                interval: 50, // 레이블의 간격을 조정
-                getTitlesWidget: (value, meta) {
-                  if (value % 50 == 0) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0), // Y축 레이블 여백 추가
-                      child: Text(
-                        '${value.toInt()}점',
-                        style: TextStyle(fontWeight: value == 300 ? FontWeight.bold : FontWeight.normal),
-                      ),
-                    );
-                  }
-                  return Container();
-                },
-              ),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                interval: 1,
-                getTitlesWidget: (value, _) {
-                  int intValue = value.toInt();
-                  String label = monthLabels[intValue] ?? '';
-                  if (label.isEmpty) {
+            titlesData: FlTitlesData(
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 50, // 여백을 60으로 설정하여 적당한 간격 유지
+                  interval: 50,
+                  getTitlesWidget: (value, meta) {
+                    if (value % 50 == 0) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          right: 4.0, // 여백을 약간 줄임
+                          top: value == 300 ? 10.0 : 0, // 300점에 여백 추가
+                        ),
+                        child: Text(
+                          '${value.toInt()}점',
+                          textAlign: TextAlign.right, // 오른쪽 정렬
+                          style: TextStyle(
+                            fontWeight: FontWeight.normal, // 모든 글씨를 동일하게 표기
+                          ),
+                        ),
+                      );
+                    }
                     return Container();
-                  }
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      left: intValue == 0 ? 16.0 : 0,
-                      right: intValue == currentMonthCount - 1 ? 16.0 : 0,
-                      top: 16.0,
-                    ),
-                    child: Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  );
-                },
-                reservedSize: 36,
-              ),
-            ),
-            topTitles: AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            rightTitles: AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-          ),
-          borderData: FlBorderData(
-            show: true,
-            border: Border.all(color: Colors.black, width: 1),
-          ),
-          minX: -0.5,
-          maxX: currentMonthCount - 0.5, // 현재 월 수에 따라 동적 설정 및 여백 추가
-          minY: 0,
-          maxY: 310, // y축의 maxY를 310으로 설정하여 300점이 잘리지 않도록 함
-          lineBarsData: [
-            LineChartBarData(
-              spots: dataPoints,
-              isCurved: true,
-              barWidth: 4,
-              isStrokeCapRound: true,
-              belowBarData: BarAreaData(
-                show: true,
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.blue.withOpacity(0.2),
-                    Colors.blue.withOpacity(0),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  },
                 ),
               ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: 1,
+                  getTitlesWidget: (value, _) {
+                    int intValue = value.toInt();
+                    String label = monthLabels[intValue] ?? '';
+                    if (label.isEmpty) {
+                      return Container();
+                    }
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        left: intValue == 0 ? 8.0 : 0,
+                        right: intValue == 11 ? 8.0 : 0,
+                        top: 8.0, // 여백을 적당히 조정
+                      ),
+                      child: Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 13), // 글씨 크기를 y축과 동일하게
+                      ),
+                    );
+                  },
+                  reservedSize: 40, // 여백을 적당히 조정
+                ),
+              ),
+              topTitles: AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              rightTitles: AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
             ),
-          ],
+            borderData: FlBorderData(
+              show: true,
+              border: Border.all(color: Colors.black, width: 1),
+            ),
+            minX: 0,
+            maxX: 11, // x축 범위를 1월부터 12월까지로 설정
+            minY: 0,
+            maxY: 300, // maxY 값을 300으로 설정
+            lineBarsData: [
+              LineChartBarData(
+                spots: dataPoints,
+                isCurved: true,
+                barWidth: 4,
+                isStrokeCapRound: true,
+                belowBarData: BarAreaData(
+                  show: true,
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.blue.withOpacity(0.2),
+                      Colors.blue.withOpacity(0),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -645,7 +673,7 @@ class _RankingSectionState extends State<RankingSection> with SingleTickerProvid
   Widget build(BuildContext context) {
     return Section(
       title: '취미반 랭킹',
-      icon: Icon(FontAwesome.crown, color: Color(0xFFFFD700)),
+      icon: Icon(Icons.emoji_events, color: Color(0xFFFFD700)),
       child: Column(
         children: [
           TabBar(
@@ -684,46 +712,76 @@ class RankingTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.all(16),
-      child: DataTable(
-        columnSpacing: 32,
-        headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[200]!),
-        columns: [
-          DataColumn(
-            label: Text(
-              '순위',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          dividerColor: Colors.grey[200], // Internal divider color
+        ),
+        child: DataTable(
+          headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[100]!), // Color of header row
+          border: TableBorder(
+            top: BorderSide(width: 1.5, color: Colors.black),
+            verticalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
+            horizontalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
           ),
-          DataColumn(
-            label: Text(
-              '점수',
-              style: TextStyle(fontWeight: FontWeight.bold),
+          columns: [
+            DataColumn(
+              label: Text(
+                '순위',
+                style: TextStyle(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center, // Center align the header text
+              ),
             ),
-          ),
-          DataColumn(
-            label: Text(
-              '이름',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            DataColumn(
+              label: Text(
+                '점수',
+                style: TextStyle(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center, // Center align the header text
+              ),
             ),
-          ),
-        ],
-        rows: [
-          DataRow(cells: [
-            DataCell(Text('1')),
-            DataCell(Text('190')),
-            DataCell(Text('위형규')),
-          ]),
-          DataRow(cells: [
-            DataCell(Text('2')),
-            DataCell(Text('180')),
-            DataCell(Text('우경석')),
-          ]),
-          DataRow(cells: [
-            DataCell(Text('3')),
-            DataCell(Text('170')),
-            DataCell(Text('이민지')),
-          ]),
-        ],
+            DataColumn(
+              label: Text(
+                '이름',
+                style: TextStyle(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center, // Center align the header text
+              ),
+            ),
+          ],
+          rows: [
+            DataRow(cells: [
+              DataCell(
+                Text('1', textAlign: TextAlign.center), // Center align the cell text
+              ),
+              DataCell(
+                Text('190', textAlign: TextAlign.center), // Center align the cell text
+              ),
+              DataCell(
+                Text('위형규', textAlign: TextAlign.center), // Center align the cell text
+              ),
+            ]),
+            DataRow(cells: [
+              DataCell(
+                Text('2', textAlign: TextAlign.center), // Center align the cell text
+              ),
+              DataCell(
+                Text('180', textAlign: TextAlign.center), // Center align the cell text
+              ),
+              DataCell(
+                Text('우경석', textAlign: TextAlign.center), // Center align the cell text
+              ),
+            ]),
+            DataRow(cells: [
+              DataCell(
+                Text('3', textAlign: TextAlign.center), // Center align the cell text
+              ),
+              DataCell(
+                Text('170', textAlign: TextAlign.center), // Center align the cell text
+              ),
+              DataCell(
+                Text('이민지', textAlign: TextAlign.center), // Center align the cell text
+              ),
+            ]),
+          ],
+        ),
       ),
     );
   }
@@ -744,7 +802,7 @@ class _RecordsSectionState extends State<RecordsSection> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2101),
       initialEntryMode: DatePickerEntryMode.calendarOnly,
-      // locale: Locale('ko', 'KR'),
+      locale: Locale('ko', 'KR'),
     );
     if (picked != null && picked != selectedDate) {
       setState(() {
@@ -796,24 +854,32 @@ class _RecordsSectionState extends State<RecordsSection> {
             width: double.infinity,
             child: DataTable(
               columnSpacing: 24,
-              headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[200]!),
+              headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[100]!),
+              border: TableBorder(
+                top: BorderSide(width: 1.5, color: Colors.black),
+                verticalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
+                horizontalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
+              ),
               columns: [
                 DataColumn(
                   label: Text(
                     '이름',
                     style: TextStyle(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
                   ),
                 ),
                 DataColumn(
                   label: Text(
                     'Game 1',
                     style: TextStyle(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
                   ),
                 ),
                 DataColumn(
                   label: Text(
                     'Game 2',
                     style: TextStyle(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ],
@@ -888,7 +954,7 @@ class Footer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.grey[100],
+      color: Colors.white,
       padding: EdgeInsets.all(24),
       child: Center(
         child: ElevatedButton(
