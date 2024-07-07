@@ -654,8 +654,10 @@ class RankingSection extends StatefulWidget {
   _RankingSectionState createState() => _RankingSectionState();
 }
 
-class _RankingSectionState extends State<RankingSection> with SingleTickerProviderStateMixin {
+class _RankingSectionState extends State<RankingSection>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final ApiClient _apiClient = ApiClient();
 
   @override
   void initState() {
@@ -692,8 +694,36 @@ class _RankingSectionState extends State<RankingSection> with SingleTickerProvid
             child: TabBarView(
               controller: _tabController,
               children: [
-                RankingTable(rankingType: '최고 점수 기준'),
-                RankingTable(rankingType: '평균 점수 기준'),
+                FutureBuilder<List<dynamic>>(
+                  future: _fetchRankings('rankingByMaxScore', 'maxScore'),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Failed to load data'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(child: Text('No data available'));
+                    } else {
+                      List<dynamic> rankings = snapshot.data!;
+                      return RankingTable(data: rankings, rankingType: 'rankingByMaxScore');
+                    }
+                  },
+                ),
+                FutureBuilder<List<dynamic>>(
+                  future: _fetchRankings('rankingByAvgScore', 'avgScore'),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Failed to load data'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(child: Text('No data available'));
+                    } else {
+                      List<dynamic> rankings = snapshot.data!;
+                      return RankingTable(data: rankings, rankingType: 'rankingByAvgScore');
+                    }
+                  },
+                ),
               ],
             ),
           ),
@@ -701,12 +731,32 @@ class _RankingSectionState extends State<RankingSection> with SingleTickerProvid
       ),
     );
   }
+
+  Future<List<dynamic>> _fetchRankings(String rankingType, String scoreType) async {
+    String url = 'https://bowling-rolling.com/api/v1/score/ranking';
+    try {
+      final response = await _apiClient.get(context, url);
+      if (response.statusCode == 200) {
+        List<dynamic> rankings = response.data['rankings'];
+        rankings.sort((a, b) => a[rankingType].compareTo(b[rankingType]));
+        return rankings;
+      } else {
+        throw Exception('Failed to load rankings');
+      }
+    } catch (e) {
+      print('Error fetching rankings: $e');
+      return [];
+    }
+  }
 }
 
+
+
 class RankingTable extends StatelessWidget {
+  final List<dynamic> data;
   final String rankingType;
 
-  RankingTable({required this.rankingType});
+  RankingTable({required this.data, required this.rankingType});
 
   @override
   Widget build(BuildContext context) {
@@ -716,76 +766,70 @@ class RankingTable extends StatelessWidget {
         data: Theme.of(context).copyWith(
           dividerColor: Colors.grey[200], // Internal divider color
         ),
-        child: DataTable(
-          headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[100]!), // Color of header row
-          border: TableBorder(
-            top: BorderSide(width: 1.5, color: Colors.black),
-            verticalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
-            horizontalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: DataTable(
+            headingRowColor:
+            MaterialStateColor.resolveWith((states) => Colors.grey[100]!),
+            border: TableBorder(
+              top: BorderSide(width: 1.5, color: Colors.black),
+              verticalInside:
+              BorderSide(width: 0.7, color: Colors.grey[300]!),
+              horizontalInside:
+              BorderSide(width: 0.7, color: Colors.grey[300]!),
+            ),
+            columns: [
+              DataColumn(
+                label: Text(
+                  '순위',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  '점수',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  '이름',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+            rows: List<DataRow>.generate(
+              data.length,
+                  (index) => DataRow(
+                cells: [
+                  DataCell(
+                    Text(data[index][rankingType].toString(),
+                        textAlign: TextAlign.center),
+                  ),
+                  DataCell(
+                    Text(rankingType == 'rankingByMaxScore'
+                        ? data[index]['maxScore'].toString()
+                        : data[index]['avgScore'].toString(),
+                        textAlign: TextAlign.center),
+                  ),
+                  DataCell(
+                    Text(data[index]['userName'],
+                        textAlign: TextAlign.center),
+                  ),
+                ],
+              ),
+            ),
           ),
-          columns: [
-            DataColumn(
-              label: Text(
-                '순위',
-                style: TextStyle(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center, // Center align the header text
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                '점수',
-                style: TextStyle(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center, // Center align the header text
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                '이름',
-                style: TextStyle(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center, // Center align the header text
-              ),
-            ),
-          ],
-          rows: [
-            DataRow(cells: [
-              DataCell(
-                Text('1', textAlign: TextAlign.center), // Center align the cell text
-              ),
-              DataCell(
-                Text('190', textAlign: TextAlign.center), // Center align the cell text
-              ),
-              DataCell(
-                Text('위형규', textAlign: TextAlign.center), // Center align the cell text
-              ),
-            ]),
-            DataRow(cells: [
-              DataCell(
-                Text('2', textAlign: TextAlign.center), // Center align the cell text
-              ),
-              DataCell(
-                Text('180', textAlign: TextAlign.center), // Center align the cell text
-              ),
-              DataCell(
-                Text('우경석', textAlign: TextAlign.center), // Center align the cell text
-              ),
-            ]),
-            DataRow(cells: [
-              DataCell(
-                Text('3', textAlign: TextAlign.center), // Center align the cell text
-              ),
-              DataCell(
-                Text('170', textAlign: TextAlign.center), // Center align the cell text
-              ),
-              DataCell(
-                Text('이민지', textAlign: TextAlign.center), // Center align the cell text
-              ),
-            ]),
-          ],
         ),
       ),
     );
   }
 }
+
+
 
 class RecordsSection extends StatefulWidget {
   @override
