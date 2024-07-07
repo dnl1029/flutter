@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:contact/font_awesome_icons.dart';
 import 'package:contact/my_flutter_app_icons.dart';
 import 'package:contact/record_score.dart';
@@ -10,6 +12,7 @@ import 'package:intl/intl.dart'; // 날짜 포맷을 위한 패키지
 import 'api_client.dart';
 import 'login.dart';
 import 'my_setting.dart';
+import 'package:collection/collection.dart'; // for firstWhereOrNull
 
 class MainScreen extends StatelessWidget {
   @override
@@ -806,18 +809,24 @@ class RankingTable extends StatelessWidget {
                   (index) => DataRow(
                 cells: [
                   DataCell(
-                    Text(data[index][rankingType].toString(),
-                        textAlign: TextAlign.center),
+                    Text(
+                      '${data[index][rankingType]}등',
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                   DataCell(
-                    Text(rankingType == 'rankingByMaxScore'
-                        ? data[index]['maxScore'].toString()
-                        : data[index]['avgScore'].toString(),
-                        textAlign: TextAlign.center),
+                    Text(
+                      rankingType == 'rankingByMaxScore'
+                          ? data[index]['maxScore'].toString()
+                          : data[index]['avgScore'].toString(),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                   DataCell(
-                    Text(data[index]['userName'],
-                        textAlign: TextAlign.center),
+                    Text(
+                      data[index]['userName'],
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ],
               ),
@@ -830,7 +839,6 @@ class RankingTable extends StatelessWidget {
 }
 
 
-
 class RecordsSection extends StatefulWidget {
   @override
   _RecordsSectionState createState() => _RecordsSectionState();
@@ -838,6 +846,9 @@ class RecordsSection extends StatefulWidget {
 
 class _RecordsSectionState extends State<RecordsSection> {
   DateTime? selectedDate;
+  List<dynamic> dailyScores = [];
+
+  final ApiClient _apiClient = ApiClient();
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -852,7 +863,35 @@ class _RecordsSectionState extends State<RecordsSection> {
       setState(() {
         selectedDate = picked;
       });
+      await _fetchDailyScores();
     }
+  }
+
+  Future<void> _fetchDailyScores() async {
+    if (selectedDate == null) return;
+
+    final url = 'https://bowling-rolling.com/api/v1/score/daily/workDt';
+    try {
+      final response = await _apiClient.post(
+        context,
+        url,
+        data: jsonEncode({"workDt": _formatDate(selectedDate!)}),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          dailyScores = response.data['dailyScores'];
+        });
+      } else {
+        throw Exception('Failed to load daily scores');
+      }
+    } catch (e) {
+      print('Error fetching daily scores: $e');
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return "${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}";
   }
 
   @override
@@ -904,53 +943,107 @@ class _RecordsSectionState extends State<RecordsSection> {
                 verticalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
                 horizontalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
               ),
-              columns: [
-                DataColumn(
-                  label: Text(
-                    '이름',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Game 1',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Game 2',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
-              rows: [
-                DataRow(cells: [
-                  DataCell(Text('위형규')),
-                  DataCell(Text('90')),
-                  DataCell(Text('100')),
-                ]),
-                DataRow(cells: [
-                  DataCell(Text('우경석')),
-                  DataCell(Text('80')),
-                  DataCell(Text('95')),
-                ]),
-                DataRow(cells: [
-                  DataCell(Text('이민지')),
-                  DataCell(Text('85')),
-                  DataCell(Text('90')),
-                ]),
-              ],
+              columns: _buildColumns(), // Dynamic column generation
+              rows: _buildRows(), // Row data generation
             ),
           ),
         ],
       ),
     );
   }
+
+  List<DataColumn> _buildColumns() {
+    List<DataColumn> columns = [
+      DataColumn(
+        label: Text(
+          '이름',
+          style: TextStyle(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    ];
+
+    // Assuming dailyScores is not null or empty
+    if (dailyScores.isNotEmpty) {
+      Set<int> gameNums = dailyScores.map((score) => score['gameNum'] as int).toSet();
+      List<int> sortedGameNums = gameNums.toList()..sort();
+
+      sortedGameNums.forEach((gameNum) {
+        columns.add(
+          DataColumn(
+            label: Text(
+              'Game $gameNum',
+              style: TextStyle(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        );
+      });
+    }
+
+    return columns;
+  }
+
+  List<DataRow> _buildRows() {
+    List<DataRow> rows = [];
+
+    dailyScores.forEach((score) {
+      String userName = score['userName'] as String;
+      int gameNum = score['gameNum'] as int;
+      int scoreValue = score['score'] as int;
+
+      // Find or create row for userName
+      DataRow? existingRow = rows.firstWhereOrNull((row) =>
+      row.cells.first.child is Text &&
+          (row.cells.first.child as Text).data == userName);
+
+      if (existingRow != null) {
+        // Update existing row with new score
+        int columnIndex = gameNum;
+        if (columnIndex >= 3) return; // Skip beyond Game 2
+        List<DataCell> newCells = List.from(existingRow.cells);
+        newCells[columnIndex] = DataCell(
+          Text(
+            scoreValue.toString(),
+            textAlign: TextAlign.center,
+          ),
+        );
+        rows[rows.indexOf(existingRow)] = DataRow(cells: newCells);
+      } else {
+        // Create new row for userName
+        List<DataCell> cells = [
+          DataCell(
+            Text(userName),
+          ),
+        ];
+
+        // Initialize cells for Game 1 and Game 2
+        for (int i = 1; i <= 2; i++) {
+          int currentGameNum = i;
+          if (gameNum == currentGameNum) {
+            cells.add(
+              DataCell(
+                Text(
+                  scoreValue.toString(),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
+          } else {
+            cells.add(DataCell(Text('')));
+          }
+        }
+
+        rows.add(DataRow(cells: cells));
+      }
+    });
+
+    return rows;
+  }
 }
+
+
+
 
 class RankingOption extends StatelessWidget {
   final String text;
