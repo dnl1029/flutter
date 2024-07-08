@@ -1,19 +1,21 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'dart:html' as html; // dart:html 패키지 임포트
+import 'dart:html' as html;
 
 import 'package:contact/storage_custom.dart';
 import 'package:contact/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; // 추가
+import 'package:http/http.dart' as http;
 
 import 'login.dart';
 
 class ApiClient {
   final Dio _dio = Dio();
+  bool _isLoggingOut = false;
+  Completer<void>? _tokenCheckCompleter;
+  Completer<void>? _logoutCompleter; // 추가된 로그아웃 관리용 컴플리터
 
   ApiClient() {
     _dio.interceptors.add(
@@ -23,7 +25,6 @@ class ApiClient {
           options.headers["jwtToken"] = storedToken;
           print("Request[${options.method}] => PATH: ${options.path}");
           print("Headers: ${options.headers}");
-          // 요청 데이터 출력
           if (options.method == 'POST') {
             print("Request Body: ${options.data}");
           }
@@ -35,10 +36,17 @@ class ApiClient {
         },
         onError: (DioException e, handler) {
           print("Error[${e.response?.statusCode}] => MESSAGE: ${e.message}");
+          if (e.response?.statusCode == 401) {
+            _handleUnauthorized(e.requestOptions);
+          }
           return handler.next(e); // continue
         },
       ),
     );
+  }
+
+  Future<void> _handleUnauthorized(RequestOptions requestOptions) async {
+    await checkTokenValidity(requestOptions.extra['context']);
   }
 
   Future<Response> get(BuildContext context, String url, {Map<String, dynamic>? params}) async {
@@ -51,7 +59,6 @@ class ApiClient {
     return _dio.post(url, data: data);
   }
 
-  // 유사하게 put, delete 등의 메서드도 추가
   Future<Response> put(BuildContext context, String url, {dynamic data}) async {
     await checkTokenValidity(context);
     return _dio.put(url, data: data);
@@ -63,9 +70,18 @@ class ApiClient {
   }
 
   Future<void> checkTokenValidity(BuildContext context) async {
+    if (_tokenCheckCompleter != null) {
+      await _tokenCheckCompleter!.future;
+      return;
+    }
+
+    _tokenCheckCompleter = Completer<void>();
+
     final storedToken = await StorageCustom.read('jwtToken');
     if (storedToken == null) {
-      logout(context); // Logout if token is null
+      await _performLogout(context);
+      _tokenCheckCompleter!.complete();
+      _tokenCheckCompleter = null;
       return;
     }
 
@@ -81,16 +97,40 @@ class ApiClient {
         if (isValid == 'true') {
           print('JWT Token is valid.');
         } else {
-          logout(context); // Logout if token is invalid
+          await _performLogout(context);
         }
       } else {
-        logout(context); // Logout on validation failure
+        await _performLogout(context);
         print('JWT Token validation failed');
       }
     } catch (e) {
-      logout(context); // Logout on network error
+      await _performLogout(context);
       print('JWT Token validation error: $e');
+    } finally {
+      _tokenCheckCompleter!.complete();
+      _tokenCheckCompleter = null;
     }
+  }
+
+  Future<void> _performLogout(BuildContext context) async {
+    if (_logoutCompleter != null) {
+      await _logoutCompleter!.future;
+      return;
+    }
+
+    _logoutCompleter = Completer<void>();
+
+    await StorageCustom.delete('jwtToken');
+    Utils.showAlertDialog(context, '로그인이 만료되었습니다. 다시 로그인해주세요.', onConfirmed: () {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+            (route) => false,
+      );
+    });
+
+    _logoutCompleter!.complete();
+    _logoutCompleter = null;
   }
 
   Future<Response> uploadFile(BuildContext context, String url, dynamic file) async {
@@ -117,16 +157,5 @@ class ApiClient {
     }
 
     return _dio.post(url, data: formData);
-  }
-
-  Future<void> logout(BuildContext context) async {
-    await StorageCustom.delete('jwtToken'); // 토큰 삭제
-    Utils.showAlertDialog(context, '로그인이 만료되었습니다. 다시 로그인해주세요.',onConfirmed: (){
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-            (route) => false,
-      );
-    });
   }
 }
