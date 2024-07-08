@@ -64,6 +64,22 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
       lastDate: DateTime(2101),
       initialEntryMode: DatePickerEntryMode.calendarOnly,
       locale: const Locale('ko', 'KR'), // DatePicker 위젯에 한국어 로케일 추가
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            dialogBackgroundColor: Colors.white, // 배경색을 흰색으로 설정
+            primaryColor: Colors.blue, // 선택된 날짜의 색상을 설정
+            highlightColor: Colors.blue, // 강조색을 설정
+            colorScheme: ColorScheme.light(
+              primary: Colors.blue, // 헤더 배경색을 설정
+              onPrimary: Colors.white, // 헤더 텍스트 색상을 설정
+              surface: Colors.white, // 달력 배경색을 설정
+              onSurface: Colors.black, // 달력 텍스트 색상을 설정
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != selectedDate) {
       setState(() {
@@ -144,6 +160,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
           return StatefulBuilder(
             builder: (context, setDialogState) {
               return AlertDialog(
+                backgroundColor: Colors.white,
                 title: Text('멤버 선택'),
                 content: SingleChildScrollView(
                   child: ListBody(
@@ -432,275 +449,435 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(60.0),
-          child: Container(
-            color: Color(0xFF303F9F),
-            padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(CustomIcons.bowling_ball, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text(
-                      '레인 관리하기',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                Icon(Icons.settings, color: Colors.white, size: 24),
-              ],
-            ),
-          ),
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Spacer(),
-                  Container(
-                    alignment: Alignment.centerRight,
-                    width: 250,
-                    child: Row(
-                      children: [
-                        Text(
-                          '날짜 선택: ',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () {
-                              _selectDate(context);
-                            },
-                            child: Container(
-                              height: 40,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    child: Text(
-                                      selectedDate != null
-                                          ? '${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}'
-                                          : '날짜',
-                                    ),
-                                  ),
-                                  Icon(Icons.calendar_today),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20,),
-              Container(
-                // padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.center,  // Text와 TextField의 수직 정렬 조정
-                  children: [
-                    Text('총 몇 게임 치실 건가요?'),
-                    SizedBox(width: 16),  // Text와 TextField 사이에 적절한 간격 추가
-                    Container(
-                      width: 93,  // TextField의 가로 크기를 제한
-                      child: TextField(
-                        decoration: InputDecoration(
-                          labelText: '게임 수',
-                          labelStyle: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[700],
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.grey[400]!,
-                              width: 1,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.blue,
-                              width: 2,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                        ),
-                        keyboardType: TextInputType.number,
-                        controller: gameCountController,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 20,),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ElevatedButton(
-                    onPressed: _showMemberSelectionDialog,
-                    child: Text('멤버 수정'),
-                  ),
-                  SizedBox(width: 10,),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (presentMembers.isEmpty) {
-                        // 랜덤 배정 전 선택된 멤버가 없으면 에러 표시
-                        _showErrorDialog('멤버를 선택하세요.');
-                        return;
-                      }
-                      _showRandomAssignmentDialog();
-                    },
-                    child: Text('랜덤 배정'),
-                  ),
-
-                  SizedBox(width: 10,),
-                  // 수동 배정 버튼의 onPressed 핸들러 수정
-                  ElevatedButton(
-                    onPressed: () {
-                      if (isManuallyAssigned) {
-                        // Save the current manual assignments before toggling off
-                        _saveAssignments();
-                      }
-                      setState(() {
-                        isManuallyAssigned = !isManuallyAssigned;
-                      });
-                    },
-                    child: Text('수동 배정'),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: Container(
-                    width: 350,  // 원하는 너비를 지정
-                    child: DataTable(
-                      columns: [
-                        DataColumn(label: Text('이름')),
-                        DataColumn(label: Text('Lane')),
-                        DataColumn(label: Text('순서')),
-                      ],
-                      rows: (dailyScores.isNotEmpty
-                          ? dailyScores
-                          : presentMembers.map((member) {
-                        return {
-                          'userName': member['userName'], // userName 필드 수정
-                          'laneNum': (laneAssignments[member['userName']] is Map) ? '' : laneAssignments[member['userName']]?.toString() ?? '',
-                          'laneOrder': (orderAssignments[member['userName']] is Map) ? '' : orderAssignments[member['userName']]?.toString() ?? ''
-                        };
-                      }).toList())
-                          .map((score) {
-                        return DataRow(
-                          cells: [
-                            DataCell(Text(score['userName'] ?? '')),
-                            DataCell(
-                              isManuallyAssigned
-                                  ? TextFormField(
-                                initialValue: score['laneNum'].toString(),
-                                keyboardType: TextInputType.number,
-                                onChanged: (value) {
-                                  setState(() {
-                                    if (value.isEmpty) {
-                                      laneAssignments.remove(score['userName']);
-                                    } else {
-                                      laneAssignments[score['userName']] = int.tryParse(value) ?? 0;
-                                    }
-                                    dailyScores = presentMembers.map((member) => {
-                                      'userName': member['userName'],
-                                      'laneNum': (laneAssignments[member['userName']] is Map) ? '' : laneAssignments[member['userName']]?.toString() ?? '',
-                                      'laneOrder': (orderAssignments[member['userName']] is Map) ? '' : orderAssignments[member['userName']]?.toString() ?? ''
-                                    }).toList();
-                                  });
-                                },
-                              )
-                                  : Text(score['laneNum'].toString()),
-                            ),
-                            DataCell(
-                              isManuallyAssigned
-                                  ? TextFormField(
-                                initialValue: score['laneOrder'].toString(),
-                                keyboardType: TextInputType.number,
-                                onChanged: (value) {
-                                  setState(() {
-                                    if (value.isEmpty) {
-                                      orderAssignments.remove(score['userName']);
-                                    } else {
-                                      orderAssignments[score['userName']] = int.tryParse(value) ?? 0;
-                                    }
-                                    dailyScores = presentMembers.map((member) => {
-                                      'userName': member['userName'],
-                                      'laneNum': (laneAssignments[member['userName']] is Map) ? '' : laneAssignments[member['userName']]?.toString() ?? '',
-                                      'laneOrder': (orderAssignments[member['userName']] is Map) ? '' : orderAssignments[member['userName']]?.toString() ?? ''
-                                    }).toList();
-                                  });
-                                },
-                              )
-                                  : Text(score['laneOrder'].toString()),
-                            ),
-                          ],
-                        );
-                      }).toList(),
-                    )
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        bottomNavigationBar: BottomAppBar(
-          color: Colors.white,
-          shape: CircularNotchedRectangle(),
-          notchMargin: 8.0,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(60.0),
+        child: Container(
+          color: Color(0xFF303F9F),
+          padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              SizedBox(width: 32), // 왼쪽 여백
-              Spacer(),
-              IconButton(
-                icon: Icon(Icons.home, color: Colors.black, size: 40),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => MainScreen()), // MainScreen으로 이동
-                  );
-                },
+              Row(
+                children: [
+                  Icon(CustomIcons.bowling_ball, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text(
+                    '레인 관리하기',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-              Spacer(),
-              // 새로 추가한 복사 버튼
-              ElevatedButton(
-                onPressed: _copyTableToClipboard,
-                child: Text('데이터 복사하기'),
-              ),
-              Spacer(),
-              buildSaveButton(),
-              SizedBox(width: 16), // 오른쪽 여백
+              Icon(Icons.settings, color: Colors.white, size: 24),
             ],
           ),
-        )
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Spacer(),
+                Container(
+                  alignment: Alignment.centerRight,
+                  width: 250,
+                  child: Row(
+                    children: [
+                      Text(
+                        '날짜 선택: ',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            _selectDate(context);
+                          },
+                          child: Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  child: Text(
+                                    selectedDate != null
+                                        ? '${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}'
+                                        : '날짜',
+                                  ),
+                                ),
+                                Icon(Icons.calendar_today),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+            Container(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text('총 몇 게임 치실 건가요?'),
+                  SizedBox(width: 16),
+                  Container(
+                    width: 93,
+                    child: TextField(
+                      decoration: InputDecoration(
+                        labelText: '게임 수',
+                        labelStyle: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey[400]!,
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.blue,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                      ),
+                      keyboardType: TextInputType.number,
+                      controller: gameCountController,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                // 멤버 수정 버튼
+                OutlinedButton(
+                  onPressed: _showMemberSelectionDialog,
+                  child: Text(
+                    '멤버 수정',
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                ),
+                SizedBox(width: 10),
+
+                // 랜덤 배정 버튼
+                OutlinedButton(
+                  onPressed: () {
+                    if (presentMembers.isEmpty) {
+                      _showErrorDialog('멤버를 선택하세요.');
+                      return;
+                    }
+                    _showRandomAssignmentDialog();
+                  },
+                  child: Text(
+                    '랜덤 배정',
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                ),
+                SizedBox(width: 10),
+
+                // 수동 배정 버튼
+                OutlinedButton(
+                  onPressed: () {
+                    if (isManuallyAssigned) {
+                      _saveAssignments();
+                    }
+                    setState(() {
+                      isManuallyAssigned = !isManuallyAssigned;
+                    });
+                  },
+                  child: Text(
+                    '수동 배정',
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: Container(
+                        width: MediaQuery.of(context).size.width, // 가능한 큰 가로 사이즈
+                        padding: EdgeInsets.all(16),
+                        child: Theme(
+                          data: Theme.of(context).copyWith(
+                            dividerColor: Colors.grey[200],
+                          ),
+                          child: DataTable(
+                            headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[100]!),
+                            border: TableBorder(
+                              top: BorderSide(width: 1.5, color: Colors.black),
+                              verticalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
+                              horizontalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
+                            ),
+                            columns: [
+                              DataColumn(
+                                label: Text(
+                                  '이름',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'Lane',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  '순서',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                            rows: (dailyScores.isNotEmpty
+                                ? dailyScores
+                                : presentMembers.map((member) {
+                              return {
+                                'userName': member['userName'],
+                                'laneNum': (laneAssignments[member['userName']] is Map)
+                                    ? ''
+                                    : laneAssignments[member['userName']]?.toString() ?? '',
+                                'laneOrder': (orderAssignments[member['userName']] is Map)
+                                    ? ''
+                                    : orderAssignments[member['userName']]?.toString() ?? ''
+                              };
+                            }).toList())
+                                .map((score) {
+                              return DataRow(
+                                cells: [
+                                  DataCell(Text(score['userName'] ?? '')),
+                                  DataCell(
+                                    isManuallyAssigned
+                                        ? TextFormField(
+                                      initialValue: score['laneNum'].toString(),
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          if (value.isEmpty) {
+                                            laneAssignments.remove(score['userName']);
+                                          } else {
+                                            laneAssignments[score['userName']] = int.tryParse(value) ?? 0;
+                                          }
+                                          dailyScores = presentMembers
+                                              .map((member) => {
+                                            'userName': member['userName'],
+                                            'laneNum': (laneAssignments[member['userName']] is Map)
+                                                ? ''
+                                                : laneAssignments[member['userName']]?.toString() ?? '',
+                                            'laneOrder': (orderAssignments[member['userName']] is Map)
+                                                ? ''
+                                                : orderAssignments[member['userName']]?.toString() ?? ''
+                                          })
+                                              .toList();
+                                        });
+                                      },
+                                    )
+                                        : Text(score['laneNum'].toString()),
+                                  ),
+                                  DataCell(
+                                    isManuallyAssigned
+                                        ? TextFormField(
+                                      initialValue: score['laneOrder'].toString(),
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          if (value.isEmpty) {
+                                            orderAssignments.remove(score['userName']);
+                                          } else {
+                                            orderAssignments[score['userName']] = int.tryParse(value) ?? 0;
+                                          }
+                                          dailyScores = presentMembers
+                                              .map((member) => {
+                                            'userName': member['userName'],
+                                            'laneNum': (laneAssignments[member['userName']] is Map)
+                                                ? ''
+                                                : laneAssignments[member['userName']]?.toString() ?? '',
+                                            'laneOrder': (orderAssignments[member['userName']] is Map)
+                                                ? ''
+                                                : orderAssignments[member['userName']]?.toString() ?? ''
+                                          })
+                                              .toList();
+                                        });
+                                      },
+                                    )
+                                        : Text(score['laneOrder'].toString()),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: BottomAppBar(
+        color: Colors.white,
+        shape: CircularNotchedRectangle(),
+        notchMargin: 8.0,
+        child: SizedBox(
+          height: kBottomNavigationBarHeight,
+          child: Stack(
+            children: [
+              // Home 버튼
+              Center(
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MainScreen()),
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          spreadRadius: 2,
+                          blurRadius: 5,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                      borderRadius: BorderRadius.circular(32),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.home, color: Colors.white, size: 24),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // 데이터 복사하기 버튼
+              Positioned(
+                left: 16,
+                top: (kBottomNavigationBarHeight - 42) / 2, // Home 버튼과 높이를 맞춤
+                child: OutlinedButton(
+                  onPressed: _copyTableToClipboard,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Text(
+                      '데이터 복사하기',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size(0, 50),
+                  ),
+                ),
+              ),
+              // 저장 버튼
+              Positioned(
+                right: 16,
+                top: (kBottomNavigationBarHeight - 42) / 2,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    _uploadAssignments();
+                  },
+                  icon: Icon(Icons.save, size: 24),
+                  label: Text(
+                    '저장',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF42A5F5),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    elevation: 4,
+                    textStyle: TextStyle(fontSize: 16),
+                    minimumSize: Size(0, 50),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
+
 
   Widget buildSaveButton() {
     return ElevatedButton(

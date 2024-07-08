@@ -620,34 +620,22 @@ class _SettingsPageState extends State<SettingsPage> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
       ),
       child: Scaffold(
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(60.0),
-          child: Container(
-            color: Color(0xFF303F9F),
-            padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(CustomIcons.bowling_ball, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text(
-                      '설정',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+        appBar: AppBar(
+          backgroundColor: Colors.white, // Make sure the background is white
+          elevation: 0, // No shadow or elevation
+          centerTitle: true, // Center the title
+          title: Text(
+          '설정',
+          style: TextStyle(
+            color: Colors.black, // Text color should be black
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
             ),
-          ),
+          )
         ),
         body: SingleChildScrollView(
-          child: Padding(
+          child: Container(
+            color: Colors.white,
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -708,17 +696,17 @@ class _SettingsPageState extends State<SettingsPage> {
                     ],
                   ),
                 ),
-                SizedBox(height: 20),
-                SwitchListTile(
-                  title: Text('사진 권한 접근'),
-                  subtitle: Text('사진 업로드 기능을 사용 하기 위한 권한 접근 설정입니다.'),
-                  value: photoPermission,
-                  onChanged: (bool value) {
-                    print('변경 전 사진 권한 : $photoPermission');
-                    _togglePhotoPermission();
-                    print('변경 후 사진 권한 : $photoPermission');
-                  },
-                ),
+                // SizedBox(height: 20),
+                // SwitchListTile(
+                //   title: Text('사진 권한 접근'),
+                //   subtitle: Text('사진 업로드 기능을 사용 하기 위한 권한 접근 설정입니다.'),
+                //   value: photoPermission,
+                //   onChanged: (bool value) {
+                //     print('변경 전 사진 권한 : $photoPermission');
+                //     _togglePhotoPermission();
+                //     print('변경 후 사진 권한 : $photoPermission');
+                //   },
+                // ),
                 SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -881,45 +869,74 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         bottomNavigationBar: BottomAppBar(
           color: Colors.white,
-          child: Container(
-            // height: 40.0,
-            child:
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                SizedBox(width: 32), // 왼쪽 여백
-                Spacer(),
-                IconButton(
-                  icon: Icon(Icons.home, color: Colors.black, size: 40),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MainScreen()), // MainScreen으로 이동
-                    );
-                  },
-                ),
-                Spacer(),
-                MediaQuery(
-                  data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0), // 텍스트 스케일링 비활성화
-                  child: SizedBox(
-                    width: 120,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _logout,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF0D47A1),
-                        surfaceTintColor: Color(0xFF0D47A1),
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 10),
+          shape: CircularNotchedRectangle(),
+          notchMargin: 8.0,
+          child: SizedBox(
+            height: kBottomNavigationBarHeight,
+            child: Stack(
+              children: [
+                Center(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MainScreen()),
+                      );
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF0D47A1), Color(0xFF1976D2)], // 그라데이션 색상
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            spreadRadius: 2,
+                            blurRadius: 5,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                        borderRadius: BorderRadius.circular(32),
                       ),
-                      child: Text('로그아웃', style: TextStyle(fontSize: 15)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.home, color: Colors.white, size: 24),
+                        ],
+                      ),
                     ),
                   ),
-                )
+                ),
+                Positioned(
+                  right: 8,
+                  top: (kBottomNavigationBarHeight - 42) / 2, // 높이를 맞추기 위해 조정
+                  child: ElevatedButton(
+                    onPressed: _logout,
+                    child: Text(
+                      '로그아웃',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF42A5F5), // 밝은 하늘색으로 변경
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12), // padding 조정
+                      elevation: 4,
+                      textStyle: TextStyle(fontSize: 16),
+                      minimumSize: Size(120, 50), // 버튼 크기를 홈 버튼과 맞춤
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ),
+
       ),
     );
   }

@@ -90,6 +90,22 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
       lastDate: DateTime(2101),
       initialEntryMode: DatePickerEntryMode.calendarOnly,
       locale: const Locale('ko', 'KR'), // DatePicker 위젯에 한국어 로케일 추가
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            dialogBackgroundColor: Colors.white, // 배경색을 흰색으로 설정
+            primaryColor: Colors.blue, // 선택된 날짜의 색상을 설정
+            highlightColor: Colors.blue, // 강조색을 설정
+            colorScheme: ColorScheme.light(
+              primary: Colors.blue, // 헤더 배경색을 설정
+              onPrimary: Colors.white, // 헤더 텍스트 색상을 설정
+              surface: Colors.white, // 달력 배경색을 설정
+              onSurface: Colors.black, // 달력 텍스트 색상을 설정
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != selectedDate) {
       setState(() {
@@ -316,6 +332,13 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
             backgroundColor: Colors.white,
             elevation: 0,
             centerTitle: true,
+            // leading: IconButton(
+            //   icon: Icon(Icons.arrow_back),
+            //   color: Colors.black,
+            //   onPressed: () {
+            //     Navigator.pop(context);
+            //   },
+            // ),
             title: Text(
               '점수 기록하기',
               style: TextStyle(
@@ -460,15 +483,6 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.home, color: Colors.white, size: 24),
-                            SizedBox(width: 8),
-                            Text(
-                              'Home',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -476,22 +490,27 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
                   ),
                   Positioned(
                     right: 16,
-                    top: (kBottomNavigationBarHeight - 40) / 2,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF0D47A1),
-                        surfaceTintColor: Color(0xFF0D47A1),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        minimumSize: Size(0, 40),
-                      ),
+                    top: (kBottomNavigationBarHeight - 42) / 2, // 높이를 맞추기 위해 조정
+                    child: ElevatedButton.icon(
                       onPressed: () {
                         _uploadAssignments();
                       },
-                      child: Text('저장'),
+                      icon: Icon(Icons.save, size: 24), // 아이콘 크기 조정
+                      label: Text(
+                        '저장',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF42A5F5), // 밝은 하늘색으로 변경
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12), // padding 조정
+                        elevation: 4,
+                        textStyle: TextStyle(fontSize: 16),
+                        minimumSize: Size(0, 50), // 버튼 높이를 홈 버튼과 맞춤
+                      ),
                     ),
                   ),
                 ],
@@ -545,80 +564,107 @@ class Player {
 class LaneScores extends StatelessWidget {
   final int laneNumber;
   final List<GameScoresData> gameScores;
-  final void Function(GameScoresData) onCameraAction; // 콜백 함수 추가
+  final void Function(GameScoresData) onCameraAction;
 
-  LaneScores({required this.laneNumber, required this.gameScores, required this.onCameraAction}); // 생성자 수정
+  LaneScores({
+    required this.laneNumber,
+    required this.gameScores,
+    required this.onCameraAction,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.only(bottom: 16.0),
-      child: Container(
-        color: Color(0xFFF5F5F5),
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Lane $laneNumber',
-              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Lane $laneNumber',
+          style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 16.0),
+        for (var gameScore in gameScores)
+          Card(
+            margin: EdgeInsets.symmetric(vertical: 8.0),
+            color: Colors.grey[200], // Change background color to grey[200]
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.0),
             ),
-            SizedBox(height: 16.0),
-            for (var gameScore in gameScores)
-              Column(
+            elevation: 4,
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    'Game ${gameScore.gameNumber}',
+                    style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 16.0),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      Text('Game ${gameScore.gameNumber}', style: TextStyle(fontSize: 16.0)),
-                      SizedBox(width: 16.0),
-                      IconButton(
-                        icon: Icon(Icons.camera_alt, size: 30),
-                        onPressed: () {
-                          onCameraAction(gameScore); // 콜백 함수 호출
-                        },
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            onCameraAction(gameScore);
+                          },
+                          icon: Icon(Icons.camera_alt, color: Colors.blue),
+                          label: Text(
+                            '사진 등록',
+                            style: TextStyle(color: Colors.blue),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            surfaceTintColor: Colors.white,
+                            foregroundColor: Colors.blue,
+                            side: BorderSide(color: Colors.blue),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 8.0),
-                  Table(
-                    border: TableBorder.all(),
-                    columnWidths: {
-                      0: FixedColumnWidth(100.0),
-                      1: FlexColumnWidth(),
-                    },
+                  SizedBox(height: 16.0),
+                  Column(
                     children: gameScore.players.map((player) {
-                      return TableRow(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(8.0),
-                            color: Color(0xFFF5F5F5),
-                            child: Text(
-                              player.userName,
-                              style: TextStyle(fontSize: 16.0),
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.all(8.0),
-                            child: TextField(
-                              controller: player.scoreController,
-                              decoration: InputDecoration(
-                                hintText: '수동 입력',
-                                border: OutlineInputBorder(),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 80.0,
+                              child: Text(
+                                player.userName,
+                                style: TextStyle(fontSize: 16.0),
                               ),
-                              keyboardType: TextInputType.number,
                             ),
-                          ),
-                        ],
+                            SizedBox(width: 16.0),
+                            Expanded(
+                              child: TextField(
+                                controller: player.scoreController,
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: Colors.white, // Set input field background color to white
+                                  hintText: '수동 입력',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                ),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                          ],
+                        ),
                       );
                     }).toList(),
                   ),
-                  SizedBox(height: 16.0),
                 ],
               ),
-          ],
-        ),
-      ),
+            ),
+          ),
+      ],
     );
   }
 }

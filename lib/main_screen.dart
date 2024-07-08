@@ -866,13 +866,33 @@ class _RecordsSectionState extends State<RecordsSection> {
   final ApiClient _apiClient = ApiClient();
 
   Future<void> _selectDate(BuildContext context) async {
+    final DateTime now = DateTime.now();
+    final DateTime firstDate = DateTime(2020);
+    final DateTime lastDate = DateTime(2101);
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2101),
+      initialDate: selectedDate ?? now,
+      firstDate: firstDate,
+      lastDate: lastDate,
       initialEntryMode: DatePickerEntryMode.calendarOnly,
       locale: Locale('ko', 'KR'),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            dialogBackgroundColor: Colors.white, // 배경색을 흰색으로 설정
+            primaryColor: Colors.blue, // 선택된 날짜의 색상을 설정
+            highlightColor: Colors.blue, // 강조색을 설정
+            colorScheme: ColorScheme.light(
+              primary: Colors.blue, // 헤더 배경색을 설정
+              onPrimary: Colors.white, // 헤더 텍스트 색상을 설정
+              surface: Colors.white, // 달력 배경색을 설정
+              onSurface: Colors.black, // 달력 텍스트 색상을 설정
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != selectedDate) {
       setState(() {
@@ -881,6 +901,7 @@ class _RecordsSectionState extends State<RecordsSection> {
       await _fetchDailyScores();
     }
   }
+
 
   Future<void> _fetchDailyScores() async {
     if (selectedDate == null) return;
@@ -984,7 +1005,6 @@ class _RecordsSectionState extends State<RecordsSection> {
       ),
     ];
 
-    // dailyScores가 비어있지 않다고 가정
     if (dailyScores.isNotEmpty) {
       Set<int> gameNums = dailyScores.map((score) => score['gameNum'] as int).toSet();
       List<int> sortedGameNums = gameNums.toList()..sort();
@@ -993,7 +1013,7 @@ class _RecordsSectionState extends State<RecordsSection> {
         columns.add(
           DataColumn(
             label: Container(
-              width: 100, // Adjust width as needed
+              width: 100,
               child: Center(
                 child: Text(
                   'Game $gameNum',
@@ -1013,26 +1033,23 @@ class _RecordsSectionState extends State<RecordsSection> {
   List<DataRow> _buildRows() {
     List<DataRow> rows = [];
 
-    // 사용자별 행을 저장하는 맵
     Map<String, List<DataCell>> userRows = {};
 
     dailyScores.forEach((score) {
       String userName = score['userName'] as String;
       int gameNum = score['gameNum'] as int;
-      int scoreValue = score['score'] as int;
+      int? scoreValue = score['score'];
 
-      // 사용자별 행 초기화 또는 가져오기
+      if (scoreValue == null) return;
+
       userRows.putIfAbsent(userName, () => [
         DataCell(Text(userName)),
-        // 각 gameNum에 대한 빈 셀 초기화
         ...List<DataCell>.generate(_buildColumns().length - 1, (_) => DataCell(Text('')))
       ]);
 
-      // 사용자의 행에서 적절한 위치(gameNum)의 점수 업데이트
       userRows[userName]![gameNum] = DataCell(Text(scoreValue.toString()));
     });
 
-    // 맵을 DataRow 객체로 변환
     userRows.forEach((userName, cells) {
       rows.add(DataRow(cells: cells));
     });
