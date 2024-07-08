@@ -81,6 +81,13 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
   final ImagePicker _picker = ImagePicker(); // 이미지 선택을 위한 객체 생성
   bool _isLoading = false; // 로딩 상태를 나타내는 변수
   double _progress = 0.0; // 진행 상황을 나타내는 변수
+  String? role;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRole();
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -111,8 +118,13 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
       setState(() {
         selectedDate = picked;
       });
-      await _checkAlignmentAndNavigate();
-      await _fetchLaneScores();
+      if (role == 'ADMIN') {
+        await _checkAlignmentAndNavigate();
+      } else {
+        if (selectedDate != null) {
+          await _fetchLaneScores();
+        }
+      }
     }
   }
 
@@ -138,6 +150,8 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
                 ),
               );
             });
+      } else {
+        await _fetchLaneScores();
       }
     }
   }
@@ -319,6 +333,26 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
     Utils.showAlertDialog(context, '점수 수정을 성공했습니다.');
   }
 
+  Future<void> _loadRole() async {
+    final getRoleUrl = 'https://bowling-rolling.com/api/v1/get/myRole';
+
+    try {
+      final getRoleResponse = await _apiClient.get(context,getRoleUrl);
+
+
+      if (getRoleResponse.statusCode == 200 &&
+          getRoleResponse.data['code'] == '200') {
+        setState(() {
+          role = getRoleResponse
+              .data['message']; // API에서 정상적으로 role을 가져옴
+        });
+      } else {
+        print('role 가져오기 실패: ${getRoleResponse.data['message']}');
+      }
+    } catch (e) {
+      print('role 가져오기 실패: $e');
+    }
+  }
 
 
 
@@ -372,10 +406,14 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
                         children: [
                           OutlinedButton.icon(
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => BowlingLanesPage()),
-                              );
+                              if (role == 'ADMIN') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => BowlingLanesPage()),
+                                );
+                              } else {
+                                Utils.showAlertDialog(context, '관리자만 접근할 수 있는 화면입니다.');
+                              }
                             },
                             icon: Icon(Icons.arrow_forward, size: 18, color: Colors.black), // 플러스 아이콘으로 변경하고 색상을 검정으로 설정
                             label: Text(
