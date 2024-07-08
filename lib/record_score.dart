@@ -1,16 +1,15 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:ui';
-import 'package:contact/my_flutter_app_icons.dart';
+
 import 'package:contact/utils.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:http/http.dart';
 import 'package:image_picker/image_picker.dart';
+
 import 'api_client.dart';
 import 'lane_assignment.dart';
 import 'main_screen.dart';
+import 'my_setting.dart';
 
 // void main() => runApp(BowlingScoresApp());
 
@@ -307,30 +306,39 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
 
 
 
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
         Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            centerTitle: true,
+            title: Text(
+              '점수 기록하기',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.settings),
+                color: Colors.black,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SettingsPage()),
+                  );
+                },
+              ),
+            ],
+          ),
           body: Column(
             children: [
-              Container(
-                color: Color(0xFF303F9F),
-                padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(CustomIcons.bowling_ball, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('점수 기록하기', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    Icon(Icons.settings, color: Colors.white, size: 24),
-                  ],
-                ),
-              ),
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -339,75 +347,64 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          ElevatedButton.icon(
+                          OutlinedButton.icon(
                             onPressed: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => BowlingLanesPage()),
                               );
                             },
-                            icon: Icon(Icons.arrow_forward, size: 18),
-                            label: Text('레인 관리하기 화면으로 이동'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              surfaceTintColor: Colors.white,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                            icon: Icon(Icons.arrow_forward, size: 18, color: Colors.black), // 플러스 아이콘으로 변경하고 색상을 검정으로 설정
+                            label: Text(
+                              '레인 관리하기 화면으로 이동',
+                              style: TextStyle(
+                                color: Colors.black, // 텍스트 색상을 검정으로 설정
                               ),
                             ),
-                          ),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: Colors.grey), // 테두리 색상을 회색으로 설정
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20), // 캡처 이미지와 유사한 둥근 모서리 설정
+                              ),
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), // 버튼 안쪽 여백 설정
+                            ),
+                          )
                         ],
                       ),
                     ),
-                    SizedBox(height: 20,),
+                    SizedBox(height: 20),
                     Row(
                       children: [
-                        Spacer(),
-                        Container(
-                          alignment: Alignment.centerRight,
-                          width: 250,
-                          child: Row(
-                            children: [
-                              Text(
-                                '날짜 선택: ',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              _selectDate(context);
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12),
+                              height: 50,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () {
-                                    _selectDate(context);
-                                  },
-                                  child: Container(
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                                          child: Text(
-                                            selectedDate != null
-                                                ? '${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}'
-                                                : '날짜',
-                                          ),
-                                        ),
-                                        Icon(Icons.calendar_today),
-                                      ],
-                                    ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    selectedDate != null
+                                        ? '${selectedDate!.year}-${selectedDate!.month}-${selectedDate!.day}'
+                                        : '날짜 선택',
+                                    style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                                   ),
-                                ),
+                                  Icon(Icons.calendar_today, color: Colors.grey[700]),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 20,),
+                    SizedBox(height: 20),
                   ],
                 ),
               ),
@@ -429,37 +426,76 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
             color: Colors.white,
             shape: CircularNotchedRectangle(),
             notchMargin: 8.0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SizedBox(width: 32),
-                Spacer(),
-                IconButton(
-                  icon: Icon(Icons.home, color: Colors.black, size: 40),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MainScreen()),
-                    );
-                  },
-                ),
-                Spacer(),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    surfaceTintColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              height: kBottomNavigationBarHeight,
+              child: Stack(
+                children: [
+                  Center(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => MainScreen()),
+                        );
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF0D47A1), Color(0xFF1976D2)], // 그라데이션 색상
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              spreadRadius: 2,
+                              blurRadius: 5,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.home, color: Colors.white, size: 24),
+                            SizedBox(width: 8),
+                            Text(
+                              'Home',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  onPressed: () {
-                    _uploadAssignments();  // 저장 버튼 클릭 시 호출
-                  },
-                  child: Text('저장'),
-                ),
-                SizedBox(width: 16),
-              ],
+                  Positioned(
+                    right: 16,
+                    top: (kBottomNavigationBarHeight - 40) / 2,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF0D47A1),
+                        surfaceTintColor: Color(0xFF0D47A1),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        minimumSize: Size(0, 40),
+                      ),
+                      onPressed: () {
+                        _uploadAssignments();
+                      },
+                      child: Text('저장'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

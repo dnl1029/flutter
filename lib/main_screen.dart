@@ -99,30 +99,30 @@ class _MyHomePageState extends State<MyHomePage> {
 class Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Color(0xFF303F9F),
-      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(CustomIcons.bowling_ball, color: Colors.red),
-              SizedBox(width: 8),
-              Text('볼케이노', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SettingsPage()), // SettingsPage로 이동
-              );
-            },
-            child: Icon(Icons.settings, color: Colors.white, size: 24),
-          ),
-        ],
+    return AppBar(
+      backgroundColor: Colors.white, // Make sure the background is white
+      elevation: 0, // No shadow or elevation
+      centerTitle: true, // Center the title
+      title: Text(
+        '볼링롤링',
+        style: TextStyle(
+          color: Colors.black, // Text color should be black
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
       ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.settings),
+          color: Colors.black, // Icon color should be black
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => SettingsPage()),
+            );
+          },
+        ),
+      ],
     );
   }
 }
@@ -138,8 +138,23 @@ class Content extends StatelessWidget {
       child: Column(
         children: [
           UserInfo(imageFileName: imageFileName), // Pass imageFileName to UserInfo
+          Container(
+            width: double.infinity,
+            height: 10,
+            color: Colors.grey[200], // Light gray color
+          ),
           GraphSection(),
+          Container(
+            width: double.infinity,
+            height: 10,
+            color: Colors.grey[200], // Light gray color
+          ),
           RankingSection(),
+          Container(
+            width: double.infinity,
+            height: 10,
+            color: Colors.grey[200], // Light gray color
+          ),
           RecordsSection(),
         ],
       ),
@@ -678,7 +693,7 @@ class _RankingSectionState extends State<RankingSection>
   Widget build(BuildContext context) {
     return Section(
       title: '취미반 랭킹',
-      icon: Icon(Icons.emoji_events, color: Color(0xFFFFD700)),
+      icon: Icon(FontAwesome.crown, color: Color(0xFFFFD700)),
       child: Column(
         children: [
           TabBar(
@@ -1081,6 +1096,8 @@ class Footer extends StatelessWidget {
             Navigator.push(context, MaterialPageRoute(builder: (context) => BowlingScoresApp()));
           },
           style: ElevatedButton.styleFrom(
+            // backgroundColor: Color(0xFF0D47A1),
+            // surfaceTintColor: Color(0xFF0D47A1),
             backgroundColor: Color(0xFF0D47A1),
             surfaceTintColor: Color(0xFF0D47A1),
             foregroundColor: Colors.white,
