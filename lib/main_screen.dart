@@ -57,7 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _loadJwtToken() async {
     final storedToken = await StorageCustom.read('jwtToken');
-    print('main_screen jwttoken : $storedToken');
+    // print('main_screen jwttoken : $storedToken');
     if (storedToken == null) {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
     }
