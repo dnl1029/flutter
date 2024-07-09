@@ -13,23 +13,23 @@ class LoginScreen extends StatelessWidget {
   final dio.Dio _dio = dio.Dio();
   final TextEditingController nameController = TextEditingController();
 
-  LoginScreen() {
-    _dio.interceptors.add(dio.InterceptorsWrapper(
-      onRequest: (options, handler) {
-        print("Request[${options.method}] => PATH: ${options.path}");
-        print("Headers: ${options.headers}");
-        return handler.next(options); // continue
-      },
-      onResponse: (response, handler) {
-        print("Response[${response.statusCode}] => DATA: ${response.data}");
-        return handler.next(response); // continue
-      },
-      onError: (dio.DioError e, handler) {
-        print("Error[${e.response?.statusCode}] => MESSAGE: ${e.message}");
-        return handler.next(e); // continue
-      },
-    ));
-  }
+  // LoginScreen() {
+  //   _dio.interceptors.add(dio.InterceptorsWrapper(
+  //     onRequest: (options, handler) {
+  //       print("Request[${options.method}] => PATH: ${options.path}");
+  //       print("Headers: ${options.headers}");
+  //       return handler.next(options); // continue
+  //     },
+  //     onResponse: (response, handler) {
+  //       print("Response[${response.statusCode}] => DATA: ${response.data}");
+  //       return handler.next(response); // continue
+  //     },
+  //     onError: (dio.DioError e, handler) {
+  //       print("Error[${e.response?.statusCode}] => MESSAGE: ${e.message}");
+  //       return handler.next(e); // continue
+  //     },
+  //   ));
+  // }
 
   Future<void> _login(BuildContext context) async {
     final int? userId = int.tryParse(_userIdController.text);
@@ -54,7 +54,7 @@ class LoginScreen extends StatelessWidget {
         if (responseBody['code'] == '200') {
           final jwtToken = responseBody['message'].toString();
           await StorageCustom.write('jwtToken', jwtToken);
-          print('LoginScreen jwtToken : $jwtToken');
+          // print('LoginScreen jwtToken : $jwtToken');
 
           final getNameUrl = 'https://bowling-rolling.com/api/v1/get/myName';
           final getImageFileNameUrl = 'https://bowling-rolling.com/api/v1/get/myImage';
