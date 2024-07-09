@@ -50,6 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    _apiClient.checkTokenValidity(context);
     _loadJwtToken();
     _loadImageFileName();
   }

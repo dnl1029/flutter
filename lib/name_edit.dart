@@ -18,6 +18,12 @@ class NameEditScreen extends StatefulWidget {
 class _NameEditScreenState extends State<NameEditScreen> {
   final ApiClient _apiClient = ApiClient();
 
+  @override
+  void initState() {
+    super.initState();
+    _apiClient.checkTokenValidity(context);
+  }
+
   Future<void> _saveName(BuildContext context) async {
     String name = widget.nameController.text;
     if (name.isEmpty) {

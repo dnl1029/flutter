@@ -32,6 +32,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
   @override
   void initState() {
     super.initState();
+    _apiClient.checkTokenValidity(context);
 
     // 전달받은 selectedDate를 초기화
     selectedDate = widget.selectedDate ?? DateTime.now();

@@ -86,6 +86,7 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
   @override
   void initState() {
     super.initState();
+    _apiClient.checkTokenValidity(context);
     _loadRole();
   }
 

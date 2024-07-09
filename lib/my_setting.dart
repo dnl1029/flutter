@@ -26,6 +26,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
+    _apiClient.checkTokenValidity(context);
     _loadName(); // 초기화 시에 이름을 가져오도록 호출
     _loadImageFileName(); // 초기화 시에 이미지를 가져오도록 호출
     _loadPhotoPermission();

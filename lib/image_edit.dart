@@ -15,22 +15,10 @@ class _ProfilePictureSelectionState extends State<ProfilePictureSelection> {
 
   final ApiClient _apiClient = ApiClient();
 
-  Future<void> _loadImageFileName() async {
-    final getImageFileNameUrl = 'https://bowling-rolling.com/api/v1/get/myImage';
-
-    try {
-      final response = await _apiClient.get(context,getImageFileNameUrl);
-
-      if (response.statusCode == 200 && response.data['code'] == '200') {
-        setState(() {
-          imageFileName = response.data['message']; // API에서 정상적으로 imageFileName 가져옴
-        });
-      } else {
-        print('이미지 가져오기 실패: ${response.data['message']}');
-      }
-    } catch (e) {
-      print('이미지 가져오기 실패: $e');
-    }
+  @override
+  void initState() {
+    super.initState();
+    _apiClient.checkTokenValidity(context);
   }
 
   Future<void> _saveImageFileName() async {
@@ -49,19 +37,9 @@ class _ProfilePictureSelectionState extends State<ProfilePictureSelection> {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
           });
         } else {
-          // ScaffoldMessenger.of(context).showSnackBar(
-          //   SnackBar(
-          //     content: Text('이미지 수정 실패: ${response.data['message']}'),
-          //   ),
-          // );
           Utils.showAlertDialog(context, '프로필 사진 수정을 실패하였습니다.');
         }
       } catch (e) {
-        // ScaffoldMessenger.of(context).showSnackBar(
-        //   SnackBar(
-        //     content: Text('이미지 수정 실패: $e'),
-        //   ),
-        // );
         Utils.showAlertDialog(context, '프로필 사진 수정을 실패하였습니다.');
       }
     }
