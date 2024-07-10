@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'main_screen.dart';
-import 'package:flutter/services.dart'; // 추가
+import 'package:flutter/services.dart';
+
+import 'my_setting.dart'; // 추가
 
 
 class BowlingLanesPage extends StatefulWidget {
@@ -454,32 +456,30 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(60.0),
-        child: Container(
-          color: Color(0xFF303F9F),
-          padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(CustomIcons.bowling_ball, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text(
-                    '레인 관리하기',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              Icon(Icons.settings, color: Colors.white, size: 24),
-            ],
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          '레인 관리하기',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings),
+            color: Colors.black,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsPage()), // 설정 페이지로 이동하도록 수정
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
