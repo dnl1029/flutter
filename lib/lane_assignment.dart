@@ -723,8 +723,8 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                                           } else {
                                             laneAssignments[score['userName']] = int.tryParse(value) ?? 0;
                                           }
-                                          dailyScores = presentMembers
-                                              .map((member) => {
+                                          dailyScores = presentMembers.map((member) => {
+                                            'userId': member['userId'], // userId 필드 유지
                                             'userName': member['userName'],
                                             'laneNum': (laneAssignments[member['userName']] is Map)
                                                 ? ''
@@ -732,8 +732,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                                             'laneOrder': (orderAssignments[member['userName']] is Map)
                                                 ? ''
                                                 : orderAssignments[member['userName']]?.toString() ?? ''
-                                          })
-                                              .toList();
+                                          }).toList();
                                         });
                                       },
                                     )
@@ -751,8 +750,8 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                                           } else {
                                             orderAssignments[score['userName']] = int.tryParse(value) ?? 0;
                                           }
-                                          dailyScores = presentMembers
-                                              .map((member) => {
+                                          dailyScores = presentMembers.map((member) => {
+                                            'userId': member['userId'], // userId 필드 유지
                                             'userName': member['userName'],
                                             'laneNum': (laneAssignments[member['userName']] is Map)
                                                 ? ''
@@ -760,8 +759,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                                             'laneOrder': (orderAssignments[member['userName']] is Map)
                                                 ? ''
                                                 : orderAssignments[member['userName']]?.toString() ?? ''
-                                          })
-                                              .toList();
+                                          }).toList();
                                         });
                                       },
                                     )
@@ -856,7 +854,8 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                 top: (kBottomNavigationBarHeight - 42) / 2,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    _uploadAssignments();
+                    // _uploadAssignments();
+                    validateAndSave();
                   },
                   icon: Icon(Icons.save, size: 24),
                   label: Text(
@@ -883,77 +882,66 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
     );
   }
 
+  void validateAndSave() {
+    // 날짜가 선택되었는지 확인
+    if (selectedDate == null) {
+      _showErrorDialog('선택된 날짜가 없습니다.');
+      return;
+    }
 
-  Widget buildSaveButton() {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue,
-        surfaceTintColor: Colors.blue,
-        foregroundColor: Colors.white,
-      ),
-      onPressed: () {
-        // 날짜가 선택되었는지 확인
-        if (selectedDate == null) {
-          _showErrorDialog('선택된 날짜가 없습니다.');
-          return;
-        }
+    // Lane 또는 Order 할당이 누락되었는지 확인
+    bool hasMissingLane = false;
+    bool hasMissingOrder = false;
+    List<String> duplicatedLaneOrders = [];
+    List<String> incorrectLaneOrders = [];
 
-        // Lane 또는 Order 할당이 누락되었는지 확인
-        bool hasMissingLane = false;
-        bool hasMissingOrder = false;
-        List<String> duplicatedLaneOrders = [];
-        List<String> incorrectLaneOrders = [];
+    Map<int, Set<int>> laneOrderMap = {};
 
-        Map<int, Set<int>> laneOrderMap = {};
+    for (var member in presentMembers) {
+      if (!laneAssignments.containsKey(member['userName']) || laneAssignments[member['userName']] == 0) {
+        hasMissingLane = true;
+        break;
+      }
+      if (!orderAssignments.containsKey(member['userName']) || orderAssignments[member['userName']] == 0) {
+        hasMissingOrder = true;
+        break;
+      }
 
-        for (var member in presentMembers) {
-          if (!laneAssignments.containsKey(member['userName']) || laneAssignments[member['userName']] == 0) {
-            hasMissingLane = true;
-            break;
-          }
-          if (!orderAssignments.containsKey(member['userName']) || orderAssignments[member['userName']] == 0) {
-            hasMissingOrder = true;
-            break;
-          }
+      int lane = laneAssignments[member['userName']]!;
+      int order = orderAssignments[member['userName']]!;
 
-          int lane = laneAssignments[member['userName']]!;
-          int order = orderAssignments[member['userName']]!;
-
-          if (laneOrderMap.containsKey(lane)) {
-            if (laneOrderMap[lane]!.contains(order)) {
-              duplicatedLaneOrders.add('$lane번');
-            } else {
-              laneOrderMap[lane]!.add(order);
-            }
-          } else {
-            laneOrderMap[lane] = {order};
-          }
-        }
-
-        laneOrderMap.forEach((lane, orders) {
-          List<int> sortedOrders = orders.toList()..sort();
-          for (int i = 0; i < sortedOrders.length; i++) {
-            if (sortedOrders[i] != i + 1) {
-              incorrectLaneOrders.add('$lane번');
-              break;
-            }
-          }
-        });
-
-        if (hasMissingLane) {
-          _showErrorDialog('Lane이 입력되지 않았습니다.');
-        } else if (hasMissingOrder) {
-          _showErrorDialog('순서가 입력되지 않았습니다.');
-        } else if (duplicatedLaneOrders.isNotEmpty) {
-          _showErrorDialog('${duplicatedLaneOrders.join(', ')} Lane의 순서가 중복되었습니다.');
-        } else if (incorrectLaneOrders.isNotEmpty) {
-          _showErrorDialog('${incorrectLaneOrders.join(', ')} Lane의 순서가 1번부터 할당되지 않았습니다.');
+      if (laneOrderMap.containsKey(lane)) {
+        if (laneOrderMap[lane]!.contains(order)) {
+          duplicatedLaneOrders.add('$lane번');
         } else {
-          _uploadAssignments();
+          laneOrderMap[lane]!.add(order);
         }
-      },
-      child: Text('저장'),
-    );
+      } else {
+        laneOrderMap[lane] = {order};
+      }
+    }
+
+    laneOrderMap.forEach((lane, orders) {
+      List<int> sortedOrders = orders.toList()..sort();
+      for (int i = 0; i < sortedOrders.length; i++) {
+        if (sortedOrders[i] != i + 1) {
+          incorrectLaneOrders.add('$lane번');
+          break;
+        }
+      }
+    });
+
+    if (hasMissingLane) {
+      _showErrorDialog('Lane이 입력되지 않았습니다.');
+    } else if (hasMissingOrder) {
+      _showErrorDialog('순서가 입력되지 않았습니다.');
+    } else if (duplicatedLaneOrders.isNotEmpty) {
+      _showErrorDialog('${duplicatedLaneOrders.join(', ')} Lane의 순서가 중복되었습니다.');
+    } else if (incorrectLaneOrders.isNotEmpty) {
+      _showErrorDialog('${incorrectLaneOrders.join(', ')} Lane의 순서가 1번부터 할당되지 않았습니다.');
+    } else {
+      _uploadAssignments();
+    }
   }
 
 
