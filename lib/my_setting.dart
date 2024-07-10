@@ -873,47 +873,53 @@ class _SettingsPageState extends State<SettingsPage> {
           shape: CircularNotchedRectangle(),
           notchMargin: 8.0,
           child: SizedBox(
-            height: kBottomNavigationBarHeight,
+            height: kBottomNavigationBarHeight + 20, // 높이를 약간 조정하여 BottomAppBar를 위로 올림
             child: Stack(
               children: [
-                Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => MainScreen()),
-                      );
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF0D47A1), Color(0xFF1976D2)], // 그라데이션 색상
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            spreadRadius: 2,
-                            blurRadius: 5,
-                            offset: Offset(0, 3),
+                Positioned(
+                  top: (kBottomNavigationBarHeight - 42) / 2 - 5, // 홈 버튼의 높이를 위로 조정
+                  left: 0,
+                  right: 0,
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => MainScreen()),
+                        );
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF0D47A1), Color(0xFF1976D2)], // 그라데이션 색상
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                        ],
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.home, color: Colors.white, size: 24),
-                        ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              spreadRadius: 2,
+                              blurRadius: 5,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.home, color: Colors.white, size: 24),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
                 Positioned(
                   right: 5,
-                  top: (kBottomNavigationBarHeight - 42) / 2, // 높이를 맞추기 위해 조정
+                  top: (kBottomNavigationBarHeight - 42) / 2 - 5, // 로그아웃 버튼 높이를 홈 버튼과 동일하게 조정
                   child: ElevatedButton(
                     onPressed: _logout,
                     child: Text(
@@ -937,6 +943,9 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
         ),
+
+
+
 
       ),
     );

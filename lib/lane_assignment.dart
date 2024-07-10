@@ -784,41 +784,47 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
         shape: CircularNotchedRectangle(),
         notchMargin: 8.0,
         child: SizedBox(
-          height: kBottomNavigationBarHeight,
+          height: kBottomNavigationBarHeight + 20, // 높이를 약간 조정하여 BottomAppBar를 위로 올림
           child: Stack(
             children: [
               // Home 버튼
-              Center(
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MainScreen()),
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          spreadRadius: 2,
-                          blurRadius: 5,
-                          offset: Offset(0, 3),
+              Positioned(
+                top: (kBottomNavigationBarHeight - 42) / 2 - 5, // 홈 버튼의 높이를 위로 조정
+                left: 0,
+                right: 0,
+                child: Align(
+                  alignment: Alignment.center,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MainScreen()),
+                      );
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF0D47A1), Color(0xFF1976D2)], // 그라데이션 색상
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                      ],
-                      borderRadius: BorderRadius.circular(32),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.home, color: Colors.white, size: 24),
-                      ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            spreadRadius: 2,
+                            blurRadius: 5,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                        borderRadius: BorderRadius.circular(32),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.home, color: Colors.white, size: 24),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -826,7 +832,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
               // 데이터 복사하기 버튼
               Positioned(
                 left: 16,
-                top: (kBottomNavigationBarHeight - 42) / 2, // Home 버튼과 높이를 맞춤
+                top: (kBottomNavigationBarHeight - 42) / 2 - 5, // 높이를 홈 버튼과 동일하게 조정
                 child: OutlinedButton(
                   onPressed: _copyTableToClipboard,
                   child: Padding(
@@ -851,7 +857,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
               // 저장 버튼
               Positioned(
                 right: 16,
-                top: (kBottomNavigationBarHeight - 42) / 2,
+                top: (kBottomNavigationBarHeight - 42) / 2 - 5, // 높이를 홈 버튼과 동일하게 조정
                 child: ElevatedButton.icon(
                   onPressed: () {
                     // _uploadAssignments();
@@ -879,6 +885,8 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
           ),
         ),
       ),
+
+
     );
   }
 
