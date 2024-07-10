@@ -151,6 +151,9 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
       List<dynamic> membersJson = response.data;
       List<Map<String, dynamic>> members = membersJson.map((member) => Map<String, dynamic>.from(member)).toList();
 
+      // 한글 가나다순으로 정렬
+      members.sort((a, b) => a['userName'].compareTo(b['userName']));
+
       List<String> tempSelectedMembers = dailyScores.isNotEmpty
           ? dailyScores.map((score) => score['userName'].toString()).toList()
           : List<String>.from(presentMembers.map((member) => member['userName']));
@@ -211,6 +214,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
       throw Exception('Failed to load members');
     }
   }
+
 
 
   void _assignRandomly(int laneCount) {

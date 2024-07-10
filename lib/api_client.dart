@@ -18,16 +18,16 @@ class ApiClient {
         onRequest: (options, handler) async {
           final storedToken = await StorageCustom.read('jwtToken');
           options.headers["jwtToken"] = storedToken;
-          // print("Request[${options.method}] => PATH: ${options.path}");
-          // print("Headers: ${options.headers}");
+          print("Request[${options.method}] => PATH: ${options.path}");
+          print("Headers: ${options.headers}");
           // 요청 데이터 출력
-          // if (options.method == 'POST') {
-          //   print("Request Body: ${options.data}");
-          // }
+          if (options.method == 'POST') {
+            print("Request Body: ${options.data}");
+          }
           return handler.next(options); // continue
         },
         onResponse: (response, handler) {
-          // print("Response[${response.statusCode}] => DATA: ${response.data}");
+          print("Response[${response.statusCode}] => DATA: ${response.data}");
           return handler.next(response); // continue
         },
         onError: (DioException e, handler) {

@@ -912,7 +912,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
                 Positioned(
-                  right: 8,
+                  right: 5,
                   top: (kBottomNavigationBarHeight - 42) / 2, // 높이를 맞추기 위해 조정
                   child: ElevatedButton(
                     onPressed: _logout,

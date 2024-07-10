@@ -82,12 +82,14 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
   bool _isLoading = false; // 로딩 상태를 나타내는 변수
   double _progress = 0.0; // 진행 상황을 나타내는 변수
   String? role;
+  int? myUserId;
 
   @override
   void initState() {
     super.initState();
     _apiClient.checkTokenValidity(context);
     _loadRole();
+    _loadMyUserId();
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -119,6 +121,7 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
       setState(() {
         selectedDate = picked;
       });
+      print('선택된 날짜: $selectedDate'); // 디버그 로그 추가
       if (role == 'ADMIN') {
         await _checkAlignmentAndNavigate();
       } else {
@@ -128,6 +131,7 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
       }
     }
   }
+
 
   Future<void> _checkAlignmentAndNavigate() async {
     if (selectedDate == null) return;
@@ -152,14 +156,15 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
               );
             });
       } else {
-        await _fetchLaneScores();
+        await _fetchLaneScores(isAdmin: true); // ADMIN일 때는 전체 데이터를 가져옴
       }
     }
   }
 
-  Future<void> _fetchLaneScores() async {
+  Future<void> _fetchLaneScores({bool isAdmin = false}) async {
     if (selectedDate == null) return;
     String formattedDate = _formatDate(selectedDate!);
+    print('Fetching lane scores for date: $formattedDate, isAdmin: $isAdmin'); // 디버그 로그 추가
 
     final fetchScoresUrl = 'https://bowling-rolling.com/api/v1/score/daily/workDt';
     final fetchScoresResponse = await _apiClient.post(
@@ -171,9 +176,17 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
     if (fetchScoresResponse.statusCode == 200) {
       final responseData = fetchScoresResponse.data;
       final List<dynamic> dailyScores = responseData['dailyScores'];
+      print('Fetched scores: $dailyScores'); // 디버그 로그 추가
 
       setState(() {
         laneScoresData = _parseLaneScores(dailyScores);
+
+        // ADMIN이 아닐 때는 myUserId에 해당하는 데이터만 필터링
+        if (!isAdmin && myUserId != null) {
+          laneScoresData = laneScoresData
+              .where((lane) => lane.gameScores.any((game) => game.players.any((player) => player.userId == myUserId)))
+              .toList();
+        }
 
         // laneNumber와 gameNumber로 정렬
         laneScoresData.sort((a, b) => a.laneNumber.compareTo(b.laneNumber));
@@ -184,8 +197,12 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
           }
         }
       });
+      print('Parsed lane scores: $laneScoresData'); // 디버그 로그 추가
+    } else {
+      print('Failed to fetch lane scores, status code: ${fetchScoresResponse.statusCode}'); // 디버그 로그 추가
     }
   }
+
 
 
   List<LaneScoresData> _parseLaneScores(List<dynamic> dailyScores) {
@@ -354,6 +371,25 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
       print('role 가져오기 실패: $e');
     }
   }
+
+  Future<void> _loadMyUserId() async {
+    final getMyUserIdUrl = 'https://bowling-rolling.com/api/v1/get/myUserId';
+
+    try {
+      final getMyUserIdResponse = await _apiClient.get(context, getMyUserIdUrl);
+
+      if (getMyUserIdResponse.statusCode == 200 && getMyUserIdResponse.data['code'] == '200') {
+        setState(() {
+          myUserId = int.tryParse(getMyUserIdResponse.data['message']); // myUserId를 int로 변환하여 저장
+        });
+      } else {
+        print('userId 가져오기 실패: ${getMyUserIdResponse.data['message']}');
+      }
+    } catch (e) {
+      print('userId 가져오기 실패: $e');
+    }
+  }
+
 
 
 
