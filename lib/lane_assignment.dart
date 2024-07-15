@@ -436,7 +436,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
       String name = score['userName'] ?? '';
       String laneNum = (laneAssignments[score['userName']] is Map) ? '' : laneAssignments[score['userName']]?.toString() ?? '';
       String laneOrder = (orderAssignments[score['userName']] is Map) ? '' : orderAssignments[score['userName']]?.toString() ?? '';
-      buffer.write("$name\t$laneNum\t$laneOrder\n");
+      buffer.write("$name    $laneNum           $laneOrder\n");
     }
 
     return buffer.toString();
