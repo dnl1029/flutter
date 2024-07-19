@@ -864,9 +864,9 @@ class RecordsSection extends StatefulWidget {
 
 class _RecordsSectionState extends State<RecordsSection> {
   DateTime? selectedDate;
+  int selectedYear = DateTime.now().year;
   List<dynamic> dailyScores = [];
   List<DateTime> workDates = [];
-
   final ApiClient _apiClient = ApiClient();
 
   @override
@@ -905,115 +905,143 @@ class _RecordsSectionState extends State<RecordsSection> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return Dialog(
-          child: Column(
-            children: [
-              TableCalendar(
-                locale: 'ko_KR', // Set locale to Korean
-                firstDay: DateTime(2020),
-                lastDay: DateTime(2101),
-                focusedDay: selectedDate ?? DateTime.now(),
-                selectedDayPredicate: (DateTime date) {
-                  return isSameDay(selectedDate, date);
-                },
-                onDaySelected: (DateTime selectedDay, DateTime focusedDay) {
-                  setState(() {
-                    selectedDate = selectedDay;
-                  });
-                  Navigator.pop(context);
-                  _fetchDailyScores();
-                },
-                calendarStyle: CalendarStyle(
-                  tablePadding: EdgeInsets.only(bottom: 16.0), // 날짜와 요일 사이 간격 늘리기
-                  cellMargin: EdgeInsets.symmetric(vertical: 4.0), // 셀 마진 조정
-                ),
-                daysOfWeekStyle: DaysOfWeekStyle(
-                  weekdayStyle: TextStyle(fontSize: 14, color: Colors.black), // 평일 스타일 조정
-                  weekendStyle: TextStyle(fontSize: 14, color: Colors.red), // 주말 스타일 조정 (일요일)
-                ),
-                headerStyle: HeaderStyle(
-                  titleTextStyle: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      DropdownButton<int>(
+                        value: selectedYear,
+                        items: List.generate(
+                          101,
+                              (index) => DropdownMenuItem(
+                            value: 2020 + index,
+                            child: Text((2020 + index).toString()),
+                          ),
+                        ),
+                        onChanged: (int? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              selectedYear = newValue;
+                              selectedDate = DateTime(selectedYear, selectedDate!.month, selectedDate!.day);
+                            });
+                          }
+                        },
+                      ),
+                    ],
                   ),
-                  titleCentered: true, // 제목을 중앙 정렬로 설정
-                  formatButtonVisible: false, // 2 weeks 버튼 제거
-                ),
-                calendarBuilders: CalendarBuilders(
-                  dowBuilder: (context, day) {
-                    if (day.weekday == DateTime.saturday) {
-                      return Center(
-                        child: Text(
-                          DateFormat.E('ko_KR').format(day),
-                          style: TextStyle(color: Colors.blue),
+                  Expanded(
+                    child: TableCalendar(
+                      locale: 'ko_KR',
+                      firstDay: DateTime(2020),
+                      lastDay: DateTime(2101),
+                      focusedDay: DateTime(selectedYear, selectedDate!.month),
+                      selectedDayPredicate: (DateTime date) {
+                        return isSameDay(selectedDate, date);
+                      },
+                      onDaySelected: (DateTime selectedDay, DateTime focusedDay) {
+                        setState(() {
+                          selectedDate = selectedDay;
+                        });
+                        Navigator.pop(context);
+                        _fetchDailyScores();
+                      },
+                      calendarStyle: CalendarStyle(
+                        tablePadding: EdgeInsets.only(bottom: 16.0),
+                        cellMargin: EdgeInsets.symmetric(vertical: 4.0),
+                      ),
+                      daysOfWeekStyle: DaysOfWeekStyle(
+                        weekdayStyle: TextStyle(fontSize: 14, color: Colors.black),
+                        weekendStyle: TextStyle(fontSize: 14, color: Colors.red),
+                      ),
+                      headerStyle: HeaderStyle(
+                        titleTextStyle: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
-                      );
-                    } else if (day.weekday == DateTime.sunday) {
-                      return Center(
-                        child: Text(
-                          DateFormat.E('ko_KR').format(day),
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      );
-                    } else {
-                      return Center(
-                        child: Text(
-                          DateFormat.E('ko_KR').format(day),
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      );
-                    }
-                  },
-                  defaultBuilder: (context, date, _) {
-                    if (date.weekday == DateTime.saturday) {
-                      return Center(
-                        child: Text(
-                          '${date.day}',
-                          style: TextStyle(color: Colors.blue),
-                        ),
-                      );
-                    } else if (date.weekday == DateTime.sunday) {
-                      return Center(
-                        child: Text(
-                          '${date.day}',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      );
-                    }
-                    return null;
-                  },
-                  markerBuilder: (context, date, events) {
-                    if (workDates.any((workDate) => isSameDay(workDate, date))) {
-                      return Center(
-                        child: Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${date.day}',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                    return null;
-                  },
-                ),
+                        titleCentered: true,
+                        formatButtonVisible: false,
+                      ),
+                      calendarBuilders: CalendarBuilders(
+                        dowBuilder: (context, day) {
+                          if (day.weekday == DateTime.saturday) {
+                            return Center(
+                              child: Text(
+                                DateFormat.E('ko_KR').format(day),
+                                style: TextStyle(color: Colors.blue),
+                              ),
+                            );
+                          } else if (day.weekday == DateTime.sunday) {
+                            return Center(
+                              child: Text(
+                                DateFormat.E('ko_KR').format(day),
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            );
+                          } else {
+                            return Center(
+                              child: Text(
+                                DateFormat.E('ko_KR').format(day),
+                                style: TextStyle(color: Colors.black),
+                              ),
+                            );
+                          }
+                        },
+                        defaultBuilder: (context, date, _) {
+                          if (date.weekday == DateTime.saturday) {
+                            return Center(
+                              child: Text(
+                                '${date.day}',
+                                style: TextStyle(color: Colors.blue),
+                              ),
+                            );
+                          } else if (date.weekday == DateTime.sunday) {
+                            return Center(
+                              child: Text(
+                                '${date.day}',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            );
+                          }
+                          return null;
+                        },
+                        markerBuilder: (context, date, events) {
+                          if (workDates.any((workDate) => isSameDay(workDate, date))) {
+                            return Center(
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${date.day}',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      '※빨간색으로 표시된 날짜는 취미반 활동날 입니다.',
+                    ),
+                  ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  '※빨간색으로 표시된 날짜는 취미반 활동날 입니다.',
-                  // style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
