@@ -7,7 +7,9 @@ import 'package:contact/storage_custom.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_file.dart';
 import 'package:intl/intl.dart'; // 날짜 포맷을 위한 패키지
+import 'package:table_calendar/table_calendar.dart';
 
 import 'api_client.dart';
 import 'login.dart';
@@ -863,46 +865,163 @@ class RecordsSection extends StatefulWidget {
 class _RecordsSectionState extends State<RecordsSection> {
   DateTime? selectedDate;
   List<dynamic> dailyScores = [];
+  List<DateTime> workDates = [];
 
   final ApiClient _apiClient = ApiClient();
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime now = DateTime.now();
-    final DateTime firstDate = DateTime(2020);
-    final DateTime lastDate = DateTime(2101);
+  @override
+  void initState() {
+    super.initState();
+    _initializeLocalization(); // Initialize date formatting for localization
+    _getWorkDtList();
+    selectedDate = DateTime.now(); // 디폴트로 오늘 날짜 선택
+  }
 
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate ?? now,
-      firstDate: firstDate,
-      lastDate: lastDate,
-      initialEntryMode: DatePickerEntryMode.calendarOnly,
-      locale: Locale('ko', 'KR'),
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            dialogBackgroundColor: Colors.white, // 배경색을 흰색으로 설정
-            primaryColor: Colors.blue, // 선택된 날짜의 색상을 설정
-            highlightColor: Colors.blue, // 강조색을 설정
-            colorScheme: ColorScheme.light(
-              primary: Colors.blue, // 헤더 배경색을 설정
-              onPrimary: Colors.white, // 헤더 텍스트 색상을 설정
-              surface: Colors.white, // 달력 배경색을 설정
-              onSurface: Colors.black, // 달력 텍스트 색상을 설정
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-      });
-      await _fetchDailyScores();
+  Future<void> _initializeLocalization() async {
+    await initializeDateFormatting('ko_KR', '');
+    setState(() {
+      // Locale를 ko_KR로 설정
+      Intl.defaultLocale = 'ko_KR';
+    });
+  }
+
+  Future<void> _getWorkDtList() async {
+    final workDtUrl = 'https://bowling-rolling.com/api/v1/score/workDtList';
+
+    try {
+      final getWorkDtResponse = await _apiClient.get(context, workDtUrl);
+
+      if (getWorkDtResponse.statusCode == 200) {
+        List<String> workDtStrings = List<String>.from(getWorkDtResponse.data['workDtList']);
+        setState(() {
+          workDates = workDtStrings.map((date) {
+            int year = int.parse(date.substring(0, 4));
+            int month = int.parse(date.substring(4, 6));
+            int day = int.parse(date.substring(6, 8));
+            return DateTime(year, month, day);
+          }).toList();
+          print('workDates : $workDates');
+        });
+      } else {
+        throw Exception('Failed to load work dates');
+      }
+    } catch (e) {
+      print('작업 날짜 목록 가져오기 실패: $e');
     }
   }
 
+  void _selectDate(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Column(
+            children: [
+              TableCalendar(
+                locale: 'ko_KR', // Set locale to Korean
+                firstDay: DateTime(2020),
+                lastDay: DateTime(2101),
+                focusedDay: selectedDate ?? DateTime.now(),
+                selectedDayPredicate: (DateTime date) {
+                  return isSameDay(selectedDate, date);
+                },
+                onDaySelected: (DateTime selectedDay, DateTime focusedDay) {
+                  setState(() {
+                    selectedDate = selectedDay;
+                  });
+                  Navigator.pop(context);
+                  _fetchDailyScores();
+                },
+                calendarStyle: CalendarStyle(
+                  tablePadding: EdgeInsets.only(bottom: 16.0), // 날짜와 요일 사이 간격 늘리기
+                  cellMargin: EdgeInsets.symmetric(vertical: 4.0), // 셀 마진 조정
+                ),
+                daysOfWeekStyle: DaysOfWeekStyle(
+                  weekdayStyle: TextStyle(fontSize: 14, color: Colors.black), // 평일 스타일 조정
+                  weekendStyle: TextStyle(fontSize: 14, color: Colors.red), // 주말 스타일 조정 (일요일)
+                ),
+                headerStyle: HeaderStyle(
+                  formatButtonVisible: false, // 2 weeks 버튼 제거
+                ),
+                calendarBuilders: CalendarBuilders(
+                  dowBuilder: (context, day) {
+                    if (day.weekday == DateTime.saturday) {
+                      return Center(
+                        child: Text(
+                          DateFormat.E('ko_KR').format(day),
+                          style: TextStyle(color: Colors.blue),
+                        ),
+                      );
+                    } else if (day.weekday == DateTime.sunday) {
+                      return Center(
+                        child: Text(
+                          DateFormat.E('ko_KR').format(day),
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      );
+                    } else {
+                      return Center(
+                        child: Text(
+                          DateFormat.E('ko_KR').format(day),
+                          style: TextStyle(color: Colors.black),
+                        ),
+                      );
+                    }
+                  },
+                  defaultBuilder: (context, date, _) {
+                    if (date.weekday == DateTime.saturday) {
+                      return Center(
+                        child: Text(
+                          '${date.day}',
+                          style: TextStyle(color: Colors.blue),
+                        ),
+                      );
+                    } else if (date.weekday == DateTime.sunday) {
+                      return Center(
+                        child: Text(
+                          '${date.day}',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      );
+                    }
+                    return null;
+                  },
+                  markerBuilder: (context, date, events) {
+                    if (workDates.any((workDate) => isSameDay(workDate, date))) {
+                      return Center(
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${date.day}',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  '※빨간색으로 표시된 날짜는 취미반 활동날 입니다.',
+                  // style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> _fetchDailyScores() async {
     if (selectedDate == null) return;
@@ -1058,6 +1177,7 @@ class _RecordsSectionState extends State<RecordsSection> {
     return rows;
   }
 }
+
 
 
 class RankingOption extends StatelessWidget {
