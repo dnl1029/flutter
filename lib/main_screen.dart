@@ -872,17 +872,8 @@ class _RecordsSectionState extends State<RecordsSection> {
   @override
   void initState() {
     super.initState();
-    _initializeLocalization(); // Initialize date formatting for localization
     _getWorkDtList();
     selectedDate = DateTime.now(); // 디폴트로 오늘 날짜 선택
-  }
-
-  Future<void> _initializeLocalization() async {
-    await initializeDateFormatting('ko_KR', '');
-    setState(() {
-      // Locale를 ko_KR로 설정
-      Intl.defaultLocale = 'ko_KR';
-    });
   }
 
   Future<void> _getWorkDtList() async {
@@ -941,6 +932,11 @@ class _RecordsSectionState extends State<RecordsSection> {
                   weekendStyle: TextStyle(fontSize: 14, color: Colors.red), // 주말 스타일 조정 (일요일)
                 ),
                 headerStyle: HeaderStyle(
+                  titleTextStyle: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  titleCentered: true, // 제목을 중앙 정렬로 설정
                   formatButtonVisible: false, // 2 weeks 버튼 제거
                 ),
                 calendarBuilders: CalendarBuilders(
