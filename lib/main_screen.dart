@@ -909,6 +909,7 @@ class _RecordsSectionState extends State<RecordsSection> {
           builder: (context, setState) {
             return Dialog(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -933,103 +934,101 @@ class _RecordsSectionState extends State<RecordsSection> {
                       ),
                     ],
                   ),
-                  Expanded(
-                    child: TableCalendar(
-                      locale: 'ko_KR',
-                      firstDay: DateTime(2020),
-                      lastDay: DateTime(2101),
-                      focusedDay: DateTime(selectedYear, selectedDate!.month),
-                      selectedDayPredicate: (DateTime date) {
-                        return isSameDay(selectedDate, date);
+                  TableCalendar(
+                    locale: 'ko_KR',
+                    firstDay: DateTime(2020),
+                    lastDay: DateTime(2101),
+                    focusedDay: DateTime(selectedYear, selectedDate!.month),
+                    selectedDayPredicate: (DateTime date) {
+                      return isSameDay(selectedDate, date);
+                    },
+                    onDaySelected: (DateTime selectedDay, DateTime focusedDay) {
+                      setState(() {
+                        selectedDate = selectedDay;
+                      });
+                      Navigator.pop(context);
+                      _fetchDailyScores();
+                    },
+                    calendarStyle: CalendarStyle(
+                      tablePadding: EdgeInsets.only(bottom: 16.0),
+                      cellMargin: EdgeInsets.symmetric(vertical: 4.0),
+                    ),
+                    daysOfWeekStyle: DaysOfWeekStyle(
+                      weekdayStyle: TextStyle(fontSize: 14, color: Colors.black),
+                      weekendStyle: TextStyle(fontSize: 14, color: Colors.red),
+                    ),
+                    headerStyle: HeaderStyle(
+                      titleTextStyle: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      titleCentered: true,
+                      formatButtonVisible: false,
+                    ),
+                    calendarBuilders: CalendarBuilders(
+                      dowBuilder: (context, day) {
+                        if (day.weekday == DateTime.saturday) {
+                          return Center(
+                            child: Text(
+                              DateFormat.E('ko_KR').format(day),
+                              style: TextStyle(color: Colors.blue),
+                            ),
+                          );
+                        } else if (day.weekday == DateTime.sunday) {
+                          return Center(
+                            child: Text(
+                              DateFormat.E('ko_KR').format(day),
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          );
+                        } else {
+                          return Center(
+                            child: Text(
+                              DateFormat.E('ko_KR').format(day),
+                              style: TextStyle(color: Colors.black),
+                            ),
+                          );
+                        }
                       },
-                      onDaySelected: (DateTime selectedDay, DateTime focusedDay) {
-                        setState(() {
-                          selectedDate = selectedDay;
-                        });
-                        Navigator.pop(context);
-                        _fetchDailyScores();
+                      defaultBuilder: (context, date, _) {
+                        if (date.weekday == DateTime.saturday) {
+                          return Center(
+                            child: Text(
+                              '${date.day}',
+                              style: TextStyle(color: Colors.blue),
+                            ),
+                          );
+                        } else if (date.weekday == DateTime.sunday) {
+                          return Center(
+                            child: Text(
+                              '${date.day}',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          );
+                        }
+                        return null;
                       },
-                      calendarStyle: CalendarStyle(
-                        tablePadding: EdgeInsets.only(bottom: 16.0),
-                        cellMargin: EdgeInsets.symmetric(vertical: 4.0),
-                      ),
-                      daysOfWeekStyle: DaysOfWeekStyle(
-                        weekdayStyle: TextStyle(fontSize: 14, color: Colors.black),
-                        weekendStyle: TextStyle(fontSize: 14, color: Colors.red),
-                      ),
-                      headerStyle: HeaderStyle(
-                        titleTextStyle: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        titleCentered: true,
-                        formatButtonVisible: false,
-                      ),
-                      calendarBuilders: CalendarBuilders(
-                        dowBuilder: (context, day) {
-                          if (day.weekday == DateTime.saturday) {
-                            return Center(
-                              child: Text(
-                                DateFormat.E('ko_KR').format(day),
-                                style: TextStyle(color: Colors.blue),
+                      markerBuilder: (context, date, events) {
+                        if (workDates.any((workDate) => isSameDay(workDate, date))) {
+                          return Center(
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
                               ),
-                            );
-                          } else if (day.weekday == DateTime.sunday) {
-                            return Center(
-                              child: Text(
-                                DateFormat.E('ko_KR').format(day),
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            );
-                          } else {
-                            return Center(
-                              child: Text(
-                                DateFormat.E('ko_KR').format(day),
-                                style: TextStyle(color: Colors.black),
-                              ),
-                            );
-                          }
-                        },
-                        defaultBuilder: (context, date, _) {
-                          if (date.weekday == DateTime.saturday) {
-                            return Center(
-                              child: Text(
-                                '${date.day}',
-                                style: TextStyle(color: Colors.blue),
-                              ),
-                            );
-                          } else if (date.weekday == DateTime.sunday) {
-                            return Center(
-                              child: Text(
-                                '${date.day}',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            );
-                          }
-                          return null;
-                        },
-                        markerBuilder: (context, date, events) {
-                          if (workDates.any((workDate) => isSameDay(workDate, date))) {
-                            return Center(
-                              child: Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '${date.day}',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
+                              child: Center(
+                                child: Text(
+                                  '${date.day}',
+                                  style: TextStyle(color: Colors.white),
                                 ),
                               ),
-                            );
-                          }
-                          return null;
-                        },
-                      ),
+                            ),
+                          );
+                        }
+                        return null;
+                      },
                     ),
                   ),
                   Padding(
