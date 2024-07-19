@@ -5,6 +5,8 @@ import 'package:contact/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 import 'api_client.dart';
 import 'lane_assignment.dart';
@@ -76,6 +78,8 @@ class PercentIndicator extends StatelessWidget {
 
 class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
   DateTime? selectedDate;
+  int selectedYear = DateTime.now().year;
+  List<DateTime> workDates = [];
   List<LaneScoresData> laneScoresData = [];
   final ApiClient _apiClient = ApiClient();
   final ImagePicker _picker = ImagePicker(); // 이미지 선택을 위한 객체 생성
@@ -90,46 +94,189 @@ class _BowlingScoresScreenState extends State<BowlingScoresScreen> {
     _apiClient.checkTokenValidity(context);
     _loadRole();
     _loadMyUserId();
+    _getWorkDtList();
+  }
+
+  Future<void> _getWorkDtList() async {
+    final workDtUrl = 'https://bowling-rolling.com/api/v1/score/workDtList';
+
+    try {
+      final getWorkDtResponse = await _apiClient.get(context, workDtUrl);
+
+      if (getWorkDtResponse.statusCode == 200) {
+        List<String> workDtStrings = List<String>.from(getWorkDtResponse.data['workDtList']);
+        setState(() {
+          workDates = workDtStrings.map((date) {
+            int year = int.parse(date.substring(0, 4));
+            int month = int.parse(date.substring(4, 6));
+            int day = int.parse(date.substring(6, 8));
+            return DateTime(year, month, day);
+          }).toList();
+          print('workDates : $workDates');
+        });
+      } else {
+        throw Exception('Failed to load work dates');
+      }
+    } catch (e) {
+      print('작업 날짜 목록 가져오기 실패: $e');
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    await showDialog(
       context: context,
-      initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2101),
-      initialEntryMode: DatePickerEntryMode.calendarOnly,
-      locale: const Locale('ko', 'KR'), // DatePicker 위젯에 한국어 로케일 추가
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            dialogBackgroundColor: Colors.white, // 배경색을 흰색으로 설정
-            primaryColor: Colors.blue, // 선택된 날짜의 색상을 설정
-            highlightColor: Colors.blue, // 강조색을 설정
-            colorScheme: ColorScheme.light(
-              primary: Colors.blue, // 헤더 배경색을 설정
-              onPrimary: Colors.white, // 헤더 텍스트 색상을 설정
-              surface: Colors.white, // 달력 배경색을 설정
-              onSurface: Colors.black, // 달력 텍스트 색상을 설정
-            ),
-          ),
-          child: child!,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      DropdownButton<int>(
+                        value: selectedYear,
+                        items: List.generate(
+                          101,
+                              (index) => DropdownMenuItem(
+                            value: 2020 + index,
+                            child: Text((2020 + index).toString()),
+                          ),
+                        ),
+                        onChanged: (int? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              selectedYear = newValue;
+                              if (selectedDate != null) {
+                                selectedDate = DateTime(selectedYear, selectedDate!.month, selectedDate!.day);
+                              } else {
+                                selectedDate = DateTime(selectedYear, DateTime.now().month, DateTime.now().day);
+                              }
+                            });
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  TableCalendar(
+                    locale: 'ko_KR',
+                    firstDay: DateTime(2020),
+                    lastDay: DateTime(2101),
+                    focusedDay: DateTime(selectedYear, selectedDate?.month ?? DateTime.now().month),
+                    selectedDayPredicate: (DateTime date) {
+                      return isSameDay(selectedDate, date);
+                    },
+                    onDaySelected: (DateTime selectedDay, DateTime focusedDay) {
+                      setState(() {
+                        selectedDate = selectedDay;
+                      });
+                      Navigator.pop(context);
+
+                      if (role == 'ADMIN') {
+                        _checkAlignmentAndNavigate();
+                      } else {
+                        if (selectedDate != null) {
+                          _fetchLaneScores();
+                        }
+                      }
+                    },
+                    calendarStyle: CalendarStyle(
+                      tablePadding: EdgeInsets.only(bottom: 16.0),
+                      cellMargin: EdgeInsets.symmetric(vertical: 4.0),
+                    ),
+                    daysOfWeekStyle: DaysOfWeekStyle(
+                      weekdayStyle: TextStyle(fontSize: 14, color: Colors.black),
+                      weekendStyle: TextStyle(fontSize: 14, color: Colors.red),
+                    ),
+                    headerStyle: HeaderStyle(
+                      titleTextStyle: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      titleCentered: true,
+                      formatButtonVisible: false,
+                    ),
+                    calendarBuilders: CalendarBuilders(
+                      dowBuilder: (context, day) {
+                        if (day.weekday == DateTime.saturday) {
+                          return Center(
+                            child: Text(
+                              DateFormat.E('ko_KR').format(day),
+                              style: TextStyle(color: Colors.blue),
+                            ),
+                          );
+                        } else if (day.weekday == DateTime.sunday) {
+                          return Center(
+                            child: Text(
+                              DateFormat.E('ko_KR').format(day),
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          );
+                        } else {
+                          return Center(
+                            child: Text(
+                              DateFormat.E('ko_KR').format(day),
+                              style: TextStyle(color: Colors.black),
+                            ),
+                          );
+                        }
+                      },
+                      defaultBuilder: (context, date, _) {
+                        if (date.weekday == DateTime.saturday) {
+                          return Center(
+                            child: Text(
+                              '${date.day}',
+                              style: TextStyle(color: Colors.blue),
+                            ),
+                          );
+                        } else if (date.weekday == DateTime.sunday) {
+                          return Center(
+                            child: Text(
+                              '${date.day}',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          );
+                        }
+                        return null;
+                      },
+                      markerBuilder: (context, date, events) {
+                        if (workDates.any((workDate) => isSameDay(workDate, date))) {
+                          return Center(
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${date.day}',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      '※빨간색으로 표시된 날짜는 취미반 활동날 입니다.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-      });
-      print('선택된 날짜: $selectedDate'); // 디버그 로그 추가
-      if (role == 'ADMIN') {
-        await _checkAlignmentAndNavigate();
-      } else {
-        if (selectedDate != null) {
-          await _fetchLaneScores();
-        }
-      }
-    }
   }
 
 
