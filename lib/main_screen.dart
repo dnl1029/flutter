@@ -908,6 +908,7 @@ class _RecordsSectionState extends State<RecordsSection> {
         return StatefulBuilder(
           builder: (context, setState) {
             return Dialog(
+              backgroundColor: Colors.white,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1035,7 +1036,7 @@ class _RecordsSectionState extends State<RecordsSection> {
                     padding: const EdgeInsets.all(8.0),
                     child: Text(
                       '※빨간색으로 표시된 날짜는 취미반 활동날 입니다.',
-                      style: TextStyle(fontSize: 12),
+                      style: TextStyle(fontSize: 16),
                     ),
                   ),
                 ],
