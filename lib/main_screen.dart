@@ -289,7 +289,7 @@ class UserInfo extends StatelessWidget {
     return Container(
       width: double.infinity,
       color: Colors.white,
-      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -297,10 +297,12 @@ class UserInfo extends StatelessWidget {
           CircleAvatar(
             radius: 50,
             backgroundImage: imageFileName != null
-                ? AssetImage(imageFileName!)
+                ? (imageFileName!.startsWith('https')
+                ? NetworkImage(imageFileName!)
+                : AssetImage(imageFileName!) as ImageProvider)
                 : AssetImage('default.png'),
           ),
-          // SizedBox(width: 0),
+          SizedBox(width: 10),
           // User Info Section
           Expanded(
             child: Column(

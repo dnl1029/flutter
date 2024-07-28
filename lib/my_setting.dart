@@ -650,8 +650,10 @@ class _SettingsPageState extends State<SettingsPage> {
                         child: CircleAvatar(
                           radius: 50,
                           backgroundImage: imageFileName != null
-                              ? AssetImage('$imageFileName')
-                              : AssetImage('default.png'), // 예시로 기본 이미지를 설정할 수 있습니다.
+                              ? (imageFileName!.startsWith('https')
+                              ? NetworkImage(imageFileName!)
+                              : AssetImage(imageFileName!) as ImageProvider)
+                              : AssetImage('default.png'),
                         ),
                       ),
                       SizedBox(width: 16),
