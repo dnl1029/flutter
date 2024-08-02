@@ -495,20 +495,107 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
     });
   }
 
+  Future<List<Map<String, dynamic>>> _fetchScoresForUpload(int gameNum) async {
+    if (selectedDate == null) return [];
+
+    final String formattedDate = _formatDate(selectedDate!);
+    final url = 'https://bowling-rolling.com/api/v1/score/daily/workDt';
+
+    final response = await _apiClient.post(
+      context,
+      url,
+      data: jsonEncode({"workDt": formattedDate}),
+    );
+
+    if (response != null && response.statusCode == 200) {
+      List<dynamic> scoresJson = response.data['dailyScores'];
+
+      return scoresJson
+          .where((score) => score['gameNum'] == gameNum) // gameNum에 따라 필터링
+          .map((score) => {
+        'userId': score['userId'],
+        'userName': score['userName'],
+        'laneNum': score['laneNum'],
+        'laneOrder': score['laneOrder'],
+        'score': score['score'] // score 필드 포함
+      })
+          .toList();
+    } else {
+      _showErrorDialog('점수 데이터를 가져오는데 실패했습니다.');
+      return [];
+    }
+  }
+
+
   Future<void> _uploadAssignments() async {
     if (selectedDate == null) {
       _showErrorDialog('날짜를 선택해주세요.');
       return;
     }
 
-    final String formattedDate = _formatDate(selectedDate!);
     final int gameCount = int.tryParse(gameCountController.text) ?? 2;
 
     for (int gameNum = 1; gameNum <= gameCount; gameNum++) {
+      // 각 gameNum에 대해 점수를 가져와 dailyScores를 업데이트
+      final List<Map<String, dynamic>> scoresToUpload = await _fetchScoresForUpload(gameNum);
+      print('scoresToUpload for gameNum $gameNum: $scoresToUpload');
+
+      // dailyScores 업데이트
+      setState(() {
+        dailyScores = dailyScores.map((existingScore) {
+          // 임시적으로 형변환을 적용하여 비교
+          final existingUserId = existingScore['userId'] as int?;
+          final existingUserName = existingScore['userName'] as String?;
+          final existingLaneNum = (existingScore['laneNum'] is String
+              ? int.tryParse(existingScore['laneNum'] as String) // String을 int로 변환
+              : existingScore['laneNum'] as int?);
+          final existingLaneOrder = (existingScore['laneOrder'] is String
+              ? int.tryParse(existingScore['laneOrder'] as String) // String을 int로 변환
+              : existingScore['laneOrder'] as int?);
+
+          final matchingScore = scoresToUpload.firstWhere(
+                (apiScore) {
+              final apiUserId = apiScore['userId'] as int?;
+              final apiUserName = apiScore['userName'] as String?;
+              final apiLaneNum = apiScore['laneNum'] as int?;
+              final apiLaneOrder = apiScore['laneOrder'] as int?;
+              final apiScoreValue = apiScore['score'] as int?;
+
+              return apiUserId == existingUserId &&
+                  apiUserName == existingUserName &&
+                  apiLaneNum == existingLaneNum &&
+                  apiLaneOrder == existingLaneOrder;
+            },
+            orElse: () => {
+              'userId': existingUserId,
+              'userName': existingUserName,
+              'laneNum': existingScore['laneNum'],
+              'laneOrder': existingScore['laneOrder'],
+              'score': null, // 기본값으로 null을 설정
+            },
+          );
+          print('Matching score for ${existingScore['userId']}: $matchingScore');
+
+          return {
+            ...existingScore,
+            'score': matchingScore['score'] ?? existingScore['score'], // API에서 가져온 점수로 업데이트, 없으면 기존 점수 유지
+          };
+        }).toList();
+        print('Updated dailyScores: $dailyScores');
+      });
+
+      final String formattedDate = _formatDate(selectedDate!);
+
       for (var score in dailyScores) {
-        final userId = score['userId'];
-        final laneNum = score['laneNum'];
-        final laneOrder = score['laneOrder'];
+        final userId = score['userId'] as int?;
+        // POST 요청을 보낼 때는 laneNum과 laneOrder를 int로 변환
+        final laneNum = (score['laneNum'] is String
+            ? int.tryParse(score['laneNum'] as String) // String을 int로 변환
+            : score['laneNum'] as int?);
+        final laneOrder = (score['laneOrder'] is String
+            ? int.tryParse(score['laneOrder'] as String) // String을 int로 변환
+            : score['laneOrder'] as int?);
+        final userScore = score['score'] as int?; // 점수 값 가져오기
 
         final data = {
           'workDt': formattedDate,
@@ -516,11 +603,13 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
           'gameNum': gameNum,
           'laneNum': laneNum,
           'laneOrder': laneOrder,
+          'score': userScore, // score가 null일 경우 null로 처리
         };
 
         final url = 'https://bowling-rolling.com/api/v1/score/update/andInsert';
 
         try {
+          print('Posting data: $data');
           final response = await _apiClient.post(context, url, data: jsonEncode(data));
 
           if (response == null || response.statusCode != 200) {
@@ -536,6 +625,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
 
     _showSuccessDialog('레인 및 순서가 성공적으로 업로드되었습니다.');
   }
+
 
   void _showSuccessDialog(String message) {
     showDialog(
