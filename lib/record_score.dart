@@ -54,8 +54,8 @@ class PercentIndicator extends StatelessWidget {
       children: [
         Image.asset(
           'upload.gif',
-          width: 300, // 크기를 3배로 설정
-          height: 300,
+          width: 400, // 크기를 3배로 설정
+          height: 400,
         ),
         SizedBox(height: 20),
         Text(
