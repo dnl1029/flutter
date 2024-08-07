@@ -53,7 +53,7 @@ class PercentIndicator extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Image.asset(
-          'assets/upload.gif',
+          'upload.gif',
           width: 300, // 크기를 3배로 설정
           height: 300,
         ),
