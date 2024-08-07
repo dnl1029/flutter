@@ -294,13 +294,50 @@ class UserInfo extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Profile Image Section
-          CircleAvatar(
-            radius: 50,
-            backgroundImage: imageFileName != null
-                ? (imageFileName!.startsWith('https')
-                ? NetworkImage(imageFileName!)
-                : AssetImage(imageFileName!) as ImageProvider)
-                : AssetImage('default.png'),
+          GestureDetector(
+            onTap: () {
+              Widget imageWidget;
+              if (imageFileName != null) {
+                if (imageFileName!.startsWith('https')) {
+                  imageWidget = Image.network(
+                    imageFileName!,
+                    fit: BoxFit.cover,
+                  );
+                } else {
+                  imageWidget = Image.asset(
+                    imageFileName!,
+                    fit: BoxFit.cover,
+                  );
+                }
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return Dialog(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          imageWidget,
+                          TextButton(
+                            child: Text('닫기'),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              }
+            },
+            child: CircleAvatar(
+              radius: 50, // Adjusted to the desired radius
+              backgroundImage: imageFileName != null
+                  ? (imageFileName!.startsWith('https')
+                  ? NetworkImage(imageFileName!)
+                  : AssetImage(imageFileName!) as ImageProvider)
+                  : AssetImage('default.png'),
+            ),
           ),
           SizedBox(width: 10),
           // User Info Section
@@ -782,13 +819,13 @@ class RankingTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(vertical: 16), // 상하 여백만 적용
       child: Theme(
         data: Theme.of(context).copyWith(
           dividerColor: Colors.grey[200], // Internal divider color
         ),
         child: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
+          scrollDirection: Axis.horizontal, // Horizontal scrolling to prevent overflow
           child: DataTable(
             headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[100]!),
             border: TableBorder(
@@ -798,26 +835,39 @@ class RankingTable extends StatelessWidget {
             ),
             columns: [
               DataColumn(
-                label: Center(
-                  child: Text(
-                    '순위',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                label: Container(
+                  width: 30, // Reduce width for '순위'
+                  child: Center(
+                    child: Text(
+                      '순위',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
               ),
               DataColumn(
-                label: Center(
-                  child: Text(
-                    '점수',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                label: Container(
+                  width: 40, // Reduce width for '점수'
+                  child: Center(
+                    child: Text(
+                      '점수',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
               ),
               DataColumn(
-                label: Center(
-                  child: Text(
-                    '       이름',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                label: Container(
+                  width: 200, // Set width for '이름' to ensure visibility
+                  child: Align(
+                    alignment: Alignment.centerLeft, // Left align the header
+                    child: Text(
+                      '     이름',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.left, // Align text to the left
+                    ),
                   ),
                 ),
               ),
@@ -831,6 +881,7 @@ class RankingTable extends StatelessWidget {
                       child: Text(
                         '${data[index][rankingType]}등',
                         textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis, // Handle overflow
                       ),
                     ),
                   ),
@@ -841,33 +892,31 @@ class RankingTable extends StatelessWidget {
                             ? data[index]['maxScore'].toString()
                             : data[index]['avgScore'].toString(),
                         textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis, // Handle overflow
                       ),
                     ),
                   ),
                   DataCell(
-                    Center(
+                    Container(
+                      width: 200, // Set width for name column to ensure visibility
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.start, // Align to the start
                         children: [
                           GestureDetector(
                             onTap: () {
-                              // 이미지를 다르게 로드하는 방법
                               Widget imageWidget;
                               if (data[index]['imageFileName'].startsWith('https')) {
-                                // NetworkImage로 로드
                                 imageWidget = Image.network(
                                   data[index]['imageFileName'],
                                   fit: BoxFit.cover,
                                 );
                               } else {
-                                // AssetImage로 로드
                                 imageWidget = Image.asset(
                                   data[index]['imageFileName'],
                                   fit: BoxFit.cover,
                                 );
                               }
 
-                              // 팝업 다이얼로그 표시
                               showDialog(
                                 context: context,
                                 builder: (BuildContext context) {
@@ -898,9 +947,12 @@ class RankingTable extends StatelessWidget {
                             ),
                           ),
                           SizedBox(width: 8),
-                          Text(
-                            data[index]['userName'],
-                            textAlign: TextAlign.center,
+                          Expanded( // Use Expanded to make the text occupy the remaining space
+                            child: Text(
+                              data[index]['userName'],
+                              textAlign: TextAlign.left, // Left align name
+                              overflow: TextOverflow.ellipsis, // Handle overflow
+                            ),
                           ),
                         ],
                       ),
