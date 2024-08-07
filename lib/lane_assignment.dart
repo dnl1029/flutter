@@ -1036,100 +1036,105 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
         notchMargin: 8.0,
         child: SizedBox(
           height: kBottomNavigationBarHeight + 20, // 높이를 약간 조정하여 BottomAppBar를 위로 올림
-          child: Stack(
+          child: Row(
             children: [
-              // Home 버튼
-              Positioned(
-                top: (kBottomNavigationBarHeight - 42) / 2 - 5, // 홈 버튼의 높이를 위로 조정
-                left: 0,
-                right: 0,
-                child: Align(
-                  alignment: Alignment.center,
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => MainScreen()),
-                      );
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF0D47A1), Color(0xFF1976D2)], // 그라데이션 색상
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            spreadRadius: 2,
-                            blurRadius: 5,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.home, color: Colors.white, size: 24),
-                        ],
-                      ),
+              // 데이터 복사하기 버튼 (왼쪽)
+              OutlinedButton(
+                onPressed: _copyTableToClipboard,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(
+                    '데이터 복사하기',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 14, // 글자 크기 조정
                     ),
                   ),
                 ),
-              ),
-              // 데이터 복사하기 버튼
-              Positioned(
-                left: 16,
-                top: (kBottomNavigationBarHeight - 42) / 2 - 5, // 높이를 홈 버튼과 동일하게 조정
-                child: OutlinedButton(
-                  onPressed: _copyTableToClipboard,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Text(
-                      '데이터 복사하기',
-                      style: TextStyle(
-                        color: Colors.black,
-                      ),
-                    ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.grey),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.grey),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size(0, 50), // 버튼 크기 최소화
+                ),
+              ),
+              Spacer(), // 홈 버튼과 오른쪽 버튼들 사이의 간격을 조절합니다.
+              // 홈 버튼 (중앙)
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MainScreen()),
+                  );
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF0D47A1), Color(0xFF1976D2)], // 그라데이션 색상
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size(0, 50),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                    borderRadius: BorderRadius.circular(32),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.home, color: Colors.white, size: 24),
+                    ],
                   ),
                 ),
               ),
+              Spacer(), // 홈 버튼과 오른쪽 버튼들 사이의 간격을 조절합니다.
+              // 삭제 버튼
+              ElevatedButton(
+                onPressed: () {
+                  _confirmDelete();
+                },
+                child: Text(
+                  '삭제',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFFD32F2F),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  elevation: 4,
+                  minimumSize: Size(0, 50), // 버튼 크기 최소화
+                ),
+              ),
+              Spacer(), // 홈 버튼과 오른쪽 버튼들 사이의 간격을 조절합니다.
               // 저장 버튼
-              Positioned(
-                right: 16,
-                top: (kBottomNavigationBarHeight - 42) / 2 - 5, // 높이를 홈 버튼과 동일하게 조정
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // _uploadAssignments();
-                    validateAndSave();
-                  },
-                  icon: Icon(Icons.save, size: 24),
-                  label: Text(
-                    '저장',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ElevatedButton(
+                onPressed: () {
+                  validateAndSave();
+                },
+                child: Text(
+                  '저장',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF42A5F5),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF42A5F5),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    elevation: 4,
-                    textStyle: TextStyle(fontSize: 16),
-                    minimumSize: Size(0, 50),
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  elevation: 4,
+                  minimumSize: Size(0, 50), // 버튼 크기 최소화
                 ),
               ),
             ],
@@ -1200,6 +1205,76 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
       _showErrorDialog('${incorrectLaneOrders.join(', ')} Lane의 순서가 1번부터 할당되지 않았습니다.');
     } else {
       _uploadAssignments();
+    }
+  }
+
+  Future<void> _confirmDelete() async {
+    // 사용자가 삭제를 확인하는 대화 상자
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('삭제 확인'),
+          content: Text('선택한 날짜의 정보가 모두 삭제됩니다. 그래도 삭제하시겠습니까?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false); // 취소 버튼 클릭 시
+              },
+              child: Text('취소'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true); // 확인 버튼 클릭 시
+              },
+              child: Text('확인'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete == true) {
+      await deleteDailyScores(); // 확인을 클릭하면 삭제 메서드를 호출
+    }
+  }
+
+  Future<void> deleteDailyScores() async {
+    if (selectedDate == null) return;
+
+    final deleteScoresUrl = 'https://bowling-rolling.com/api/v1/score/delete/workDt';
+
+    try {
+      final response = await _apiClient.post(
+        context,
+        deleteScoresUrl,
+        data: {"workDt": _formatDate(selectedDate!)},
+      );
+
+      // 상태 코드가 200인 경우
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        if (responseData['code'] == "200") {
+          _showSuccessDialog('정상적으로 삭제되었습니다.');
+        } else {
+          _showErrorDialog('알 수 없는 오류가 발생했습니다.');
+        }
+      } else {
+        // 상태 코드가 404인 경우
+        if (response.statusCode == 404) {
+          if (response.data['code'] == "RESOURCE_NOT_FOUND") {
+            _showErrorDialog('해당 날짜에 삭제할 점수가 없습니다.');
+          } else {
+            _showErrorDialog('리소스를 찾을 수 없습니다.');
+          }
+        } else {
+          _showErrorDialog('서버 오류가 발생했습니다.');
+        }
+      }
+    } catch (e) {
+      // 예외 발생 시 오류 메시지를 로그로 남기거나 더 구체적인 메시지를 제공
+      print('Exception occurred: $e');
+      _showErrorDialog('해당 날짜에 삭제할 점수가 없습니다.');
     }
   }
 
