@@ -773,8 +773,6 @@ class _RankingSectionState extends State<RankingSection>
   }
 }
 
-
-
 class RankingTable extends StatelessWidget {
   final List<dynamic> data;
   final String rankingType;
@@ -792,35 +790,35 @@ class RankingTable extends StatelessWidget {
         child: SingleChildScrollView(
           scrollDirection: Axis.vertical,
           child: DataTable(
-            headingRowColor:
-            MaterialStateColor.resolveWith((states) => Colors.grey[100]!),
+            headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[100]!),
             border: TableBorder(
               top: BorderSide(width: 1.5, color: Colors.black),
-              verticalInside:
-              BorderSide(width: 0.7, color: Colors.grey[300]!),
-              horizontalInside:
-              BorderSide(width: 0.7, color: Colors.grey[300]!),
+              verticalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
+              horizontalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
             ),
             columns: [
               DataColumn(
-                label: Text(
-                  '순위',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
+                label: Center(
+                  child: Text(
+                    '순위',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
               DataColumn(
-                label: Text(
-                  '점수',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
+                label: Center(
+                  child: Text(
+                    '점수',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
               DataColumn(
-                label: Text(
-                  '이름',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
+                label: Center(
+                  child: Text(
+                    '       이름',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
@@ -829,23 +827,83 @@ class RankingTable extends StatelessWidget {
                   (index) => DataRow(
                 cells: [
                   DataCell(
-                    Text(
-                      '${data[index][rankingType]}등',
-                      textAlign: TextAlign.center,
+                    Center(
+                      child: Text(
+                        '${data[index][rankingType]}등',
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ),
                   DataCell(
-                    Text(
-                      rankingType == 'rankingByMaxScore'
-                          ? data[index]['maxScore'].toString()
-                          : data[index]['avgScore'].toString(),
-                      textAlign: TextAlign.center,
+                    Center(
+                      child: Text(
+                        rankingType == 'rankingByMaxScore'
+                            ? data[index]['maxScore'].toString()
+                            : data[index]['avgScore'].toString(),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ),
                   DataCell(
-                    Text(
-                      data[index]['userName'],
-                      textAlign: TextAlign.center,
+                    Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              // 이미지를 다르게 로드하는 방법
+                              Widget imageWidget;
+                              if (data[index]['imageFileName'].startsWith('https')) {
+                                // NetworkImage로 로드
+                                imageWidget = Image.network(
+                                  data[index]['imageFileName'],
+                                  fit: BoxFit.cover,
+                                );
+                              } else {
+                                // AssetImage로 로드
+                                imageWidget = Image.asset(
+                                  data[index]['imageFileName'],
+                                  fit: BoxFit.cover,
+                                );
+                              }
+
+                              // 팝업 다이얼로그 표시
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return Dialog(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        imageWidget,
+                                        TextButton(
+                                          child: Text('닫기'),
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                            child: CircleAvatar(
+                              radius: 20,
+                              backgroundImage: data[index]['imageFileName'] != null
+                                  ? (data[index]['imageFileName'].startsWith('https')
+                                  ? NetworkImage(data[index]['imageFileName'])
+                                  : AssetImage(data[index]['imageFileName']) as ImageProvider)
+                                  : AssetImage('default.png'),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            data[index]['userName'],
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -1144,10 +1202,12 @@ class _RecordsSectionState extends State<RecordsSection> {
   List<DataColumn> _buildColumns() {
     List<DataColumn> columns = [
       DataColumn(
-        label: Text(
-          '이름',
-          style: TextStyle(fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
+        label: Container(
+          alignment: Alignment.center,
+          child: Text(
+            '이름',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     ];
@@ -1161,12 +1221,10 @@ class _RecordsSectionState extends State<RecordsSection> {
           DataColumn(
             label: Container(
               width: 100,
-              child: Center(
-                child: Text(
-                  'Game $gameNum',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
+              alignment: Alignment.center,
+              child: Text(
+                'Game $gameNum',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -1190,11 +1248,29 @@ class _RecordsSectionState extends State<RecordsSection> {
       if (scoreValue == null) return;
 
       userRows.putIfAbsent(userName, () => [
-        DataCell(Text(userName)),
-        ...List<DataCell>.generate(_buildColumns().length - 1, (_) => DataCell(Text('')))
+        DataCell(
+          Align(
+            alignment: Alignment.center,
+            child: Text(userName),
+          ),
+        ),
+        ...List<DataCell>.generate(
+          _buildColumns().length - 1,
+              (_) => DataCell(
+            Align(
+              alignment: Alignment.center,
+              child: Text(''),
+            ),
+          ),
+        ),
       ]);
 
-      userRows[userName]![gameNum] = DataCell(Text(scoreValue.toString()));
+      userRows[userName]![gameNum] = DataCell(
+        Align(
+          alignment: Alignment.center,
+          child: Text(scoreValue.toString()),
+        ),
+      );
     });
 
     userRows.forEach((userName, cells) {
