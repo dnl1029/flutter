@@ -49,27 +49,45 @@ class PercentIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        SizedBox(
-          width: 150, // 원의 크기를 더 크게 설정
-          height: 150,
-          child: CircularProgressIndicator(
-            value: progress,
-            strokeWidth: 8.0,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-            backgroundColor: Colors.grey[200],
-          ),
+        Image.asset(
+          'assets/upload.gif',
+          width: 300, // 크기를 3배로 설정
+          height: 300,
         ),
+        SizedBox(height: 20),
         Text(
           '${(progress * 100).toStringAsFixed(0)}%',
           style: TextStyle(
-            fontSize: 36, // 글자 크기를 더 크게 설정
+            fontSize: 24, // 퍼센트 텍스트 크기 설정
             fontWeight: FontWeight.bold,
-            color: Colors.white,
-            decoration: TextDecoration.none, // 밑줄 없애기
+            color: Colors.black,
+            decoration: TextDecoration.none,
           ),
+        ),
+        SizedBox(height: 10),
+        Stack(
+          alignment: Alignment.centerLeft,
+          children: [
+            Container(
+              width: 300,
+              height: 20,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            Container(
+              width: 300 * progress,
+              height: 20,
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ],
         ),
       ],
     );
