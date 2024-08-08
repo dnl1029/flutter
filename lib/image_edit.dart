@@ -152,7 +152,6 @@ class _ProfilePictureSelectionState extends State<ProfilePictureSelection> {
       ),
       bottomNavigationBar: BottomAppBar(
         color: Colors.white,
-        height: 60,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -164,7 +163,7 @@ class _ProfilePictureSelectionState extends State<ProfilePictureSelection> {
               ),
               onPressed: _uploadImageAndGetUrl,
               style: TextButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 18), // 높이를 1.5배로 조정
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                   side: BorderSide(color: Colors.blue),
@@ -180,6 +179,7 @@ class _ProfilePictureSelectionState extends State<ProfilePictureSelection> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 18), // 높이를 1.5배로 조정
               ),
               onPressed: (selectedPictureIndex != null || uploadedImageUrl != null)
                   ? _saveImageFileName

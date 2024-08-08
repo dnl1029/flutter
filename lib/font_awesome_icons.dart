@@ -25,5 +25,6 @@ class FontAwesome {
   static const _kFontFam = 'FontAwesome';
   static const String? _kFontPkg = null;
 
-  static const IconData crown = IconData(0xf521, fontFamily: _kFontFam, fontPackage: _kFontPkg,);
+  static const IconData crown = IconData(0xf521, fontFamily: _kFontFam, fontPackage: _kFontPkg);
+  static const IconData medal = IconData(0xf5a2, fontFamily: _kFontFam, fontPackage: _kFontPkg);
 }

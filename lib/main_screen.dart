@@ -289,7 +289,7 @@ class UserInfo extends StatelessWidget {
     return Container(
       width: double.infinity,
       color: Colors.white,
-      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+      padding: EdgeInsets.all(24), // Added padding
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -331,7 +331,7 @@ class UserInfo extends StatelessWidget {
               }
             },
             child: CircleAvatar(
-              radius: 50, // Adjusted to the desired radius
+              radius: 33, // Adjusted to 2/3 of the original radius (50 * 2/3)
               backgroundImage: imageFileName != null
                   ? (imageFileName!.startsWith('https')
                   ? NetworkImage(imageFileName!)
@@ -339,7 +339,7 @@ class UserInfo extends StatelessWidget {
                   : AssetImage('default.png'),
             ),
           ),
-          SizedBox(width: 10),
+          SizedBox(width: 12), // Added space between image and right column
           // User Info Section
           Expanded(
             child: Column(
@@ -370,14 +370,15 @@ class UserInfo extends StatelessWidget {
                               color: Colors.blue[700],
                             ),
                           ),
-                          SizedBox(width: 4),
+                          SizedBox(width: 12),
                           Container(
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start, // Changed alignment to left
                               children: [
                                 Text(
                                   '최고 점수',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 14, // Reduced font size
                                     color: Colors.grey[600],
                                   ),
                                 ),
@@ -385,7 +386,7 @@ class UserInfo extends StatelessWidget {
                                 Text(
                                   maxScore,
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 14, // Reduced font size
                                     fontWeight: FontWeight.bold,
                                     color: Colors.blue,
                                   ),
@@ -393,7 +394,7 @@ class UserInfo extends StatelessWidget {
                               ],
                             ),
                           ),
-                          SizedBox(width: 10),
+                          SizedBox(width: 12), // Added space between max score and average score
                           CircleAvatar(
                             radius: 20,
                             backgroundColor: Colors.grey[200],
@@ -403,14 +404,15 @@ class UserInfo extends StatelessWidget {
                               color: Colors.black,
                             ),
                           ),
-                          SizedBox(width: 4),
+                          SizedBox(width: 12),
                           Container(
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start, // Changed alignment to left
                               children: [
                                 Text(
                                   '평균 점수',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 14, // Reduced font size
                                     color: Colors.grey[600],
                                   ),
                                 ),
@@ -418,7 +420,7 @@ class UserInfo extends StatelessWidget {
                                 Text(
                                   avgScore,
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 16, // Reduced font size
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black,
                                   ),
@@ -467,13 +469,11 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _fetchScoreData(selectedYear);
+    _fetchScoreData();
   }
 
-  Future<void> _fetchScoreData(int year) async {
-    final scoreUrl = 'https://bowling-rolling.com/api/v1/score/myUserId?year=$year';
-    DateTime startMonth = DateTime(year, 1, 1);
-    DateTime endMonth = DateTime(year, 12, 31);
+  Future<void> _fetchScoreData() async {
+    final scoreUrl = 'https://bowling-rolling.com/api/v1/score/myUserId';
 
     try {
       final response = await _apiClient.get(context, scoreUrl);
@@ -481,37 +481,53 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
         final data = response.data;
         final scores = data['scores'];
 
-        if (scores.isNotEmpty) {
-          List<FlSpot> bestScores = [];
-          List<FlSpot> avgScores = [];
-          Map<int, String> labels = {};
-
-          for (int i = 0; i < scores.length; i++) {
-            final score = scores[i];
-            final yearMonth = score['yearMonth'];
-            final year = int.parse(yearMonth.substring(0, 4));
-            final month = int.parse(yearMonth.substring(4, 6));
-            DateTime date = DateTime(year, month, 1);
-            int index = month - 1;  // 월을 0부터 11까지 설정
-            final monthLabel = DateFormat('M월').format(date);
-
-            if (!labels.containsKey(index)) {
-              bestScores.add(FlSpot(index.toDouble(), score['maxScore'].toDouble()));
-              avgScores.add(FlSpot(index.toDouble(), score['avgScore'].toDouble()));
-              labels[index] = monthLabel;
-            }
-          }
-
-          setState(() {
-            bestScoreDataPoints = bestScores;
-            avgScoreDataPoints = avgScores;
-            monthLabels = labels;
-          });
-        }
+        setState(() {
+          _updateScoreData(scores);
+        });
+      } else {
+        setState(() {
+          bestScoreDataPoints = [];
+          avgScoreDataPoints = [];
+          monthLabels = {};
+        });
       }
     } catch (error) {
       print("Error fetching scores: $error");
+      setState(() {
+        bestScoreDataPoints = [];
+        avgScoreDataPoints = [];
+        monthLabels = {};
+      });
     }
+  }
+
+  void _updateScoreData(List<dynamic> scores) {
+    List<FlSpot> bestScores = [];
+    List<FlSpot> avgScores = [];
+    Map<int, String> labels = {};
+
+    for (int i = 0; i < scores.length; i++) {
+      final score = scores[i];
+      final yearMonth = score['yearMonth'];
+      final year = int.parse(yearMonth.substring(0, 4));
+      final month = int.parse(yearMonth.substring(4, 6));
+
+      if (year == selectedYear) {
+        DateTime date = DateTime(year, month, 1);
+        int index = month - 1;  // 월을 0부터 11까지 설정
+        final monthLabel = DateFormat('M월').format(date);
+
+        if (!labels.containsKey(index)) {
+          bestScores.add(FlSpot(index.toDouble(), score['maxScore'].toDouble()));
+          avgScores.add(FlSpot(index.toDouble(), score['avgScore'].toDouble()));
+          labels[index] = monthLabel;
+        }
+      }
+    }
+
+    bestScoreDataPoints = bestScores;
+    avgScoreDataPoints = avgScores;
+    monthLabels = labels;
   }
 
   @override
@@ -525,7 +541,6 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
     return Section(
       title: '내 월별 점수',
       child: Container(
-        // margin: EdgeInsets.symmetric(horizontal: 16),
         width: double.infinity,
         height: 400,
         child: Column(
@@ -536,9 +551,7 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
                 children: [
                   Text(
                     '년도 선택',
-                    style: TextStyle(fontSize: 16
-                        // , fontWeight: FontWeight.bold
-                    ),
+                    style: TextStyle(fontSize: 16),
                   ),
                   SizedBox(width: 16),
                   DropdownButton<int>(
@@ -547,7 +560,7 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
                       if (newValue != null) {
                         setState(() {
                           selectedYear = newValue;
-                          _fetchScoreData(selectedYear);
+                          _fetchScoreData();
                         });
                       }
                     },
@@ -570,8 +583,7 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
               ],
               labelColor: Colors.blue,
               unselectedLabelColor: Colors.grey,
-              indicatorColor: Colors.blue,
-              indicatorWeight: 3.0,
+              indicatorColor: Colors.transparent, // 하단 회색 라인 제거
             ),
             SizedBox(height: 16),
             Expanded(
@@ -591,7 +603,7 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
 
   Widget _buildChart(List<FlSpot> dataPoints) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8), // 여백을 줄임
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Container(
         width: double.infinity,
         child: LineChart(
@@ -619,21 +631,18 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
               leftTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
-                  reservedSize: 50, // 여백을 60으로 설정하여 적당한 간격 유지
+                  reservedSize: 50,
                   interval: 50,
                   getTitlesWidget: (value, meta) {
                     if (value % 50 == 0) {
                       return Padding(
                         padding: EdgeInsets.only(
-                          right: 4.0, // 여백을 약간 줄임
-                          top: value == 300 ? 10.0 : 0, // 300점에 여백 추가
+                          right: 4.0,
+                          top: value == 300 ? 10.0 : 0,
                         ),
                         child: Text(
                           '${value.toInt()}점',
-                          textAlign: TextAlign.right, // 오른쪽 정렬
-                          style: TextStyle(
-                            fontWeight: FontWeight.normal, // 모든 글씨를 동일하게 표기
-                          ),
+                          textAlign: TextAlign.right,
                         ),
                       );
                     }
@@ -655,16 +664,16 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
                       padding: EdgeInsets.only(
                         left: intValue == 0 ? 8.0 : 0,
                         right: intValue == 11 ? 8.0 : 0,
-                        top: 8.0, // 여백을 적당히 조정
+                        top: 8.0,
                       ),
                       child: Text(
                         label,
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 13), // 글씨 크기를 y축과 동일하게
+                        style: TextStyle(fontSize: 13),
                       ),
                     );
                   },
-                  reservedSize: 40, // 여백을 적당히 조정
+                  reservedSize: 40,
                 ),
               ),
               topTitles: AxisTitles(
@@ -679,9 +688,9 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
               border: Border.all(color: Colors.black, width: 1),
             ),
             minX: 0,
-            maxX: 11, // x축 범위를 1월부터 12월까지로 설정
+            maxX: 11,
             minY: 0,
-            maxY: 300, // maxY 값을 300으로 설정
+            maxY: 300,
             lineBarsData: [
               LineChartBarData(
                 spots: dataPoints,
@@ -707,6 +716,9 @@ class _GraphSectionState extends State<GraphSection> with SingleTickerProviderSt
     );
   }
 }
+
+
+
 
 
 class RankingSection extends StatefulWidget {
@@ -750,7 +762,7 @@ class _RankingSectionState extends State<RankingSection>
           ),
           SizedBox(height: 16),
           Container(
-            height: 300,
+            height: 500,
             child: TabBarView(
               controller: _tabController,
               children: [
@@ -810,6 +822,7 @@ class _RankingSectionState extends State<RankingSection>
   }
 }
 
+
 class RankingTable extends StatelessWidget {
   final List<dynamic> data;
   final String rankingType;
@@ -819,146 +832,150 @@ class RankingTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 16), // 상하 여백만 적용
+      padding: EdgeInsets.symmetric(vertical: 16),
       child: Theme(
-        data: Theme.of(context).copyWith(
-          dividerColor: Colors.grey[200], // Internal divider color
-        ),
+        data: Theme.of(context).copyWith(),
         child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal, // Horizontal scrolling to prevent overflow
-          child: DataTable(
-            headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[100]!),
-            border: TableBorder(
-              top: BorderSide(width: 1.5, color: Colors.black),
-              verticalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
-              horizontalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
-            ),
-            columns: [
-              DataColumn(
-                label: Container(
-                  width: 30, // Reduce width for '순위'
-                  child: Center(
-                    child: Text(
-                      '순위',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
+          scrollDirection: Axis.vertical,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowHeight: 0,
+              headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[100]!),
+              border: TableBorder(
+                top: BorderSide(width: 1.5, color: Colors.black),
+                horizontalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
+              ),
+              columns: [
+                DataColumn(
+                  label: Container(
+                    width: 50, // 순위 컬럼의 너비 조정
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(''),
                     ),
                   ),
                 ),
-              ),
-              DataColumn(
-                label: Container(
-                  width: 40, // Reduce width for '점수'
-                  child: Center(
-                    child: Text(
-                      '점수',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
+                DataColumn(
+                  label: Container(
+                    width: 80, // 이름 컬럼의 너비 조정
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(''),
                     ),
                   ),
                 ),
-              ),
-              DataColumn(
-                label: Container(
-                  width: 200, // Set width for '이름' to ensure visibility
-                  child: Align(
-                    alignment: Alignment.centerLeft, // Left align the header
-                    child: Text(
-                      '     이름',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.left, // Align text to the left
+                DataColumn(
+                  label: Container(
+                    width: 40, // 점수 컬럼의 너비 조정
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(''),
                     ),
                   ),
                 ),
-              ),
-            ],
-            rows: List<DataRow>.generate(
-              data.length,
-                  (index) => DataRow(
-                cells: [
-                  DataCell(
-                    Center(
-                      child: Text(
-                        '${data[index][rankingType]}등',
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis, // Handle overflow
+              ],
+              rows: List<DataRow>.generate(
+                data.length,
+                    (index) => DataRow(
+                  cells: [
+                    DataCell(
+                      Container(
+                        width: 50,
+                        child: Row(
+                          children: [
+                            if (index == 0) Icon(FontAwesome.medal, color: Color(0xFFFFCF35), size: 16),
+                            if (index == 1) Icon(FontAwesome.medal, color: Color(0xFFCBCCCE), size: 16),
+                            if (index == 2) Icon(FontAwesome.medal, color: Color(0xFFDD966A), size: 16),
+                            if (index >= 3) SizedBox(width: 16), // 4등부터 아이콘 대신 빈 공간 추가
+                            SizedBox(width: 4),
+                            Text(
+                              '${data[index][rankingType]}등',
+                              textAlign: TextAlign.left,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  DataCell(
-                    Center(
-                      child: Text(
-                        rankingType == 'rankingByMaxScore'
-                            ? data[index]['maxScore'].toString()
-                            : data[index]['avgScore'].toString(),
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis, // Handle overflow
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    Container(
-                      width: 200, // Set width for name column to ensure visibility
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start, // Align to the start
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              Widget imageWidget;
-                              if (data[index]['imageFileName'].startsWith('https')) {
-                                imageWidget = Image.network(
-                                  data[index]['imageFileName'],
-                                  fit: BoxFit.cover,
-                                );
-                              } else {
-                                imageWidget = Image.asset(
-                                  data[index]['imageFileName'],
-                                  fit: BoxFit.cover,
-                                );
-                              }
-
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return Dialog(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        imageWidget,
-                                        TextButton(
-                                          child: Text('닫기'),
-                                          onPressed: () {
-                                            Navigator.of(context).pop();
-                                          },
-                                        ),
-                                      ],
-                                    ),
+                    DataCell(
+                      Container(
+                        width: 80, // 이름 컬럼의 너비 조정
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                Widget imageWidget;
+                                if (data[index]['imageFileName'].startsWith('https')) {
+                                  imageWidget = Image.network(
+                                    data[index]['imageFileName'],
+                                    fit: BoxFit.cover,
                                   );
-                                },
-                              );
-                            },
-                            child: CircleAvatar(
-                              radius: 20,
-                              backgroundImage: data[index]['imageFileName'] != null
-                                  ? (data[index]['imageFileName'].startsWith('https')
-                                  ? NetworkImage(data[index]['imageFileName'])
-                                  : AssetImage(data[index]['imageFileName']) as ImageProvider)
-                                  : AssetImage('default.png'),
+                                } else {
+                                  imageWidget = Image.asset(
+                                    data[index]['imageFileName'],
+                                    fit: BoxFit.cover,
+                                  );
+                                }
+
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return Dialog(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          imageWidget,
+                                          TextButton(
+                                            child: Text('닫기'),
+                                            onPressed: () {
+                                              Navigator.of(context).pop();
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                              child: CircleAvatar(
+                                radius: 16, // 이미지 크기 줄임
+                                backgroundImage: data[index]['imageFileName'] != null
+                                    ? (data[index]['imageFileName'].startsWith('https')
+                                    ? NetworkImage(data[index]['imageFileName'])
+                                    : AssetImage(data[index]['imageFileName']) as ImageProvider)
+                                    : AssetImage('default.png'),
+                              ),
                             ),
-                          ),
-                          SizedBox(width: 8),
-                          Expanded( // Use Expanded to make the text occupy the remaining space
-                            child: Text(
-                              data[index]['userName'],
-                              textAlign: TextAlign.left, // Left align name
-                              overflow: TextOverflow.ellipsis, // Handle overflow
+                            SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                data[index]['userName'],
+                                textAlign: TextAlign.left,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 14), // 글자 크기 줄임
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    DataCell(
+                      Container(
+                        width: 40, // 점수 컬럼의 너비 조정
+                        child: Text(
+                          rankingType == 'rankingByMaxScore'
+                              ? data[index]['maxScore'].toString()
+                              : data[index]['avgScore'].toString(),
+                          textAlign: TextAlign.left,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 14), // 글자 크기 줄임
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1255,6 +1272,7 @@ class _RecordsSectionState extends State<RecordsSection> {
     List<DataColumn> columns = [
       DataColumn(
         label: Container(
+          width: 50, // 너비를 80%로 줄임
           alignment: Alignment.center,
           child: Text(
             '이름',
@@ -1272,7 +1290,7 @@ class _RecordsSectionState extends State<RecordsSection> {
         columns.add(
           DataColumn(
             label: Container(
-              width: 100,
+              width: 50, // Game 컬럼 너비를 80%로 줄임
               alignment: Alignment.center,
               child: Text(
                 'Game $gameNum',
@@ -1299,26 +1317,20 @@ class _RecordsSectionState extends State<RecordsSection> {
 
       if (scoreValue == null) return;
 
-      userRows.putIfAbsent(userName, () => [
-        DataCell(
-          Align(
+      if (!userRows.containsKey(userName)) {
+        userRows[userName] = List.generate(_buildColumns().length, (index) => DataCell(Container()));
+        userRows[userName]![0] = DataCell(
+          Container(
+            width: 50, // 너비를 80%로 줄임
             alignment: Alignment.center,
             child: Text(userName),
           ),
-        ),
-        ...List<DataCell>.generate(
-          _buildColumns().length - 1,
-              (_) => DataCell(
-            Align(
-              alignment: Alignment.center,
-              child: Text(''),
-            ),
-          ),
-        ),
-      ]);
+        );
+      }
 
       userRows[userName]![gameNum] = DataCell(
-        Align(
+        Container(
+          width: 50, // 너비를 80%로 줄임
           alignment: Alignment.center,
           child: Text(scoreValue.toString()),
         ),
