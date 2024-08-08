@@ -986,6 +986,7 @@ class RankingTable extends StatelessWidget {
 }
 
 
+
 class RecordsSection extends StatefulWidget {
   @override
   _RecordsSectionState createState() => _RecordsSectionState();
@@ -1250,7 +1251,7 @@ class _RecordsSectionState extends State<RecordsSection> {
               child: ConstrainedBox(
                 constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
                 child: DataTable(
-                  columnSpacing: 24,
+                  columnSpacing: 20,
                   headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[100]!),
                   border: TableBorder(
                     top: BorderSide(width: 1.5, color: Colors.black),
@@ -1271,12 +1272,12 @@ class _RecordsSectionState extends State<RecordsSection> {
   List<DataColumn> _buildColumns() {
     List<DataColumn> columns = [
       DataColumn(
-        label: Container(
-          width: 50, // 너비를 80%로 줄임
-          alignment: Alignment.center,
-          child: Text(
-            '이름',
-            style: TextStyle(fontWeight: FontWeight.bold),
+        label: Expanded(
+          child: Center(
+            child: Text(
+              '이름',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ),
       ),
@@ -1289,12 +1290,12 @@ class _RecordsSectionState extends State<RecordsSection> {
       for (int gameNum in sortedGameNums) {
         columns.add(
           DataColumn(
-            label: Container(
-              width: 50, // Game 컬럼 너비를 80%로 줄임
-              alignment: Alignment.center,
-              child: Text(
-                'Game $gameNum',
-                style: TextStyle(fontWeight: FontWeight.bold),
+            label: Expanded(
+              child: Center(
+                child: Text(
+                  'Game $gameNum',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ),
@@ -1317,21 +1318,24 @@ class _RecordsSectionState extends State<RecordsSection> {
 
       if (scoreValue == null) return;
 
-      if (!userRows.containsKey(userName)) {
-        userRows[userName] = List.generate(_buildColumns().length, (index) => DataCell(Container()));
-        userRows[userName]![0] = DataCell(
-          Container(
-            width: 50, // 너비를 80%로 줄임
-            alignment: Alignment.center,
+      userRows.putIfAbsent(userName, () => [
+        DataCell(
+          Center(
             child: Text(userName),
           ),
-        );
-      }
+        ),
+        ...List<DataCell>.generate(
+          _buildColumns().length - 1,
+              (_) => DataCell(
+            Center(
+              child: Text(''),
+            ),
+          ),
+        ),
+      ]);
 
       userRows[userName]![gameNum] = DataCell(
-        Container(
-          width: 50, // 너비를 80%로 줄임
-          alignment: Alignment.center,
+        Center(
           child: Text(scoreValue.toString()),
         ),
       );
@@ -1344,6 +1348,7 @@ class _RecordsSectionState extends State<RecordsSection> {
     return rows;
   }
 }
+
 
 
 
