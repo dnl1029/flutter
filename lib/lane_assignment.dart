@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:contact/my_flutter_app_icons.dart';
 import 'package:flutter/material.dart';
@@ -479,6 +480,172 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
     );
   }
 
+  void _showSeededRandomAssignmentDialog() async {
+    int? laneCount;
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateInDialog) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              title: Text('1시드 할당 랜덤 배정'),
+              content: TextField(
+                decoration: InputDecoration(
+                  labelText: '원하는 레인 수를 입력하세요',
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  setStateInDialog(() {
+                    laneCount = int.tryParse(value);
+                  });
+                },
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('취소'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: Text('확인'),
+                  onPressed: () {
+                    if (laneCount != null && laneCount! > 0) {
+                      Navigator.of(context).pop();
+                      _assignRandomWithSeed(laneCount!);
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _assignRandomWithSeed(int laneCount) async {
+    if (presentMembers.isEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('경고'),
+          content: Text('멤버를 먼저 선택하세요.'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('확인'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final url = 'https://bowling-rolling.com/api/v1/score/ranking';
+    final response = await _apiClient.get(context, url);
+
+    if (response.statusCode != 200) {
+      _showErrorDialog('랭킹 데이터를 가져오는데 실패했습니다.');
+      return;
+    }
+
+    List<dynamic> rankings = response.data['rankings'];
+    Map<int, int> memberRankings = {};
+
+    for (var member in presentMembers) {
+      var ranking = rankings.firstWhere(
+              (r) => r['userId'] == member['userId'],
+          orElse: () => {});
+      if (ranking.isNotEmpty) {
+        memberRankings[member['userId']] = ranking['rankingByAvgScore'];
+      }
+    }
+
+    List<Map<String, dynamic>> seededMembers = [];
+    List<Map<String, dynamic>> unseededMembers = [];
+
+    presentMembers.forEach((member) {
+      if (memberRankings.containsKey(member['userId'])) {
+        seededMembers.add(member);
+      } else {
+        unseededMembers.add(member);
+      }
+    });
+
+    seededMembers.sort((a, b) => memberRankings[a['userId']]!.compareTo(memberRankings[b['userId']]!));
+
+    // Calculate the number of seeded and non-seeded members
+    int numSeeded = min(laneCount, seededMembers.length);
+    List<Map<String, dynamic>> topSeededMembers = seededMembers.take(numSeeded).toList();
+    List<Map<String, dynamic>> remainingMembers = [
+      ...seededMembers.skip(numSeeded),
+      ...unseededMembers
+    ];
+
+    laneAssignments.clear();
+    orderAssignments.clear();
+
+    // Step 1: Assign top seeded members to lane 1 to lane numSeeded
+    Random rng = Random();
+    List<int> availableLanes = List.generate(laneCount, (index) => index + 1);
+    List<int> usedLanes = [];
+
+    for (int i = 0; i < numSeeded; i++) {
+      int lane = availableLanes[i];
+      laneAssignments[topSeededMembers[i]['userName']] = lane;
+      orderAssignments[topSeededMembers[i]['userName']] = 1;
+      usedLanes.add(lane);
+    }
+
+    // Step 2: Prepare remaining members for assignment
+    remainingMembers.shuffle(rng);
+
+    // Ensure each lane gets at least 1 member
+    for (int lane in availableLanes) {
+      if (!usedLanes.contains(lane) && remainingMembers.isNotEmpty) {
+        laneAssignments[remainingMembers.removeAt(0)['userName']] = lane;
+        orderAssignments[laneAssignments.keys.last] = 1; // 1st order
+      }
+    }
+
+    // Assign the rest of the remaining members to remaining lanes
+    int currentLane = 1;
+    int currentOrder = 2; // Start with 2 as 1 is used by top seeded members
+
+    for (int i = 0; i < remainingMembers.length; i++) {
+      if (!laneAssignments.containsKey(remainingMembers[i]['userName'])) {
+        laneAssignments[remainingMembers[i]['userName']] = currentLane;
+        orderAssignments[remainingMembers[i]['userName']] = currentOrder;
+
+        currentOrder++;
+        if (currentOrder > (remainingMembers.length / laneCount).ceil() + 1) {
+          currentOrder = 2;
+          currentLane++;
+          if (currentLane > laneCount) {
+            currentLane = 1;
+          }
+        }
+      }
+    }
+
+    setState(() {
+      _sortMembers();
+      dailyScores = presentMembers.map((member) => {
+        'userId': member['userId'],
+        'userName': member['userName'],
+        'laneNum': laneAssignments[member['userName']] ?? '',
+        'laneOrder': orderAssignments[member['userName']] ?? ''
+      }).toList();
+    });
+
+    // isManuallyAssigned를 false로 설정
+    setState(() {
+      isManuallyAssigned = false;
+    });
+  }
+
 
   void _sortMembers() {
     setState(() {
@@ -782,7 +949,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 15),
             Container(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -791,6 +958,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                   Text('총 몇 게임 치실 건가요?'),
                   SizedBox(width: 16),
                   Container(
+                    height: 40,
                     width: 93,
                     child: TextField(
                       decoration: InputDecoration(
@@ -825,7 +993,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                 ],
               ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -899,7 +1067,36 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 15),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                // 멤버 수정 버튼
+                OutlinedButton(
+                  onPressed: () {
+                    if (presentMembers.isEmpty) {
+                      _showErrorDialog('멤버를 선택하세요.');
+                      return;
+                    }
+                    _showSeededRandomAssignmentDialog();
+                  },
+                  child: Text(
+                    '1시드 할당 랜덤 배정',
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
+            // SizedBox(height: 15,),
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -1041,6 +1238,14 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
               // 데이터 복사하기 버튼 (왼쪽)
               OutlinedButton(
                 onPressed: _copyTableToClipboard,
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.grey),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size(0, 50), // 버튼 크기 최소화
+                ),
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Text(
@@ -1050,14 +1255,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                       fontSize: 14, // 글자 크기 조정
                     ),
                   ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.grey),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size(0, 50), // 버튼 크기 최소화
                 ),
               ),
               Spacer(), // 홈 버튼과 오른쪽 버튼들 사이의 간격을 조절합니다.
