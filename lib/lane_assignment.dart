@@ -329,7 +329,16 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
             builder: (context, setDialogState) {
               return AlertDialog(
                 backgroundColor: Colors.white,
-                title: Text('멤버 선택'),
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('멤버 선택'),
+                    Text(
+                      '총 ${tempSelectedMembers.length}명',
+                      style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),
+                    ),
+                  ],
+                ),
                 content: SingleChildScrollView(
                   child: ListBody(
                     children: members.map((member) {
@@ -378,7 +387,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
       throw Exception('Failed to load members');
     }
   }
-
 
 
   void _assignRandomly(int laneCount) {
@@ -1001,7 +1009,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // 멤버 수정 버튼
                 OutlinedButton(
                   onPressed: _showMemberSelectionDialog,
                   child: Text(
@@ -1019,8 +1026,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                   ),
                 ),
                 SizedBox(width: 10),
-
-                // 랜덤 배정 버튼
                 OutlinedButton(
                   onPressed: () {
                     if (presentMembers.isEmpty) {
@@ -1044,8 +1049,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                   ),
                 ),
                 SizedBox(width: 10),
-
-                // 수동 배정 버튼
                 OutlinedButton(
                   onPressed: () {
                     if (isManuallyAssigned) {
@@ -1055,11 +1058,33 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                       isManuallyAssigned = !isManuallyAssigned;
                     });
                   },
-                  child: Text(
-                    '수동 배정',
-                    style: TextStyle(
-                      color: Colors.black,
-                    ),
+                  child: Row(
+                    children: [
+                      Text(
+                        '수동 배정',
+                        style: TextStyle(
+                          color: Colors.black,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      isManuallyAssigned
+                          ? Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                      )
+                          : Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
                   ),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Colors.grey),
@@ -1075,7 +1100,11 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // 멤버 수정 버튼
+                Text(
+                  '총 ${presentMembers.length}명',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Spacer(),
                 OutlinedButton(
                   onPressed: () {
                     if (presentMembers.isEmpty) {
@@ -1100,7 +1129,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                 ),
               ],
             ),
-            // SizedBox(height: 15,),
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -1150,7 +1178,7 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                                 ? dailyScores
                                 : presentMembers.map((member) {
                               return {
-                                'userName': member['userName'],
+                                'userName': member['userName'] ?? '',
                                 'laneNum': (laneAssignments[member['userName']] is Map)
                                     ? ''
                                     : laneAssignments[member['userName']]?.toString() ?? '',
@@ -1164,58 +1192,62 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                                 cells: [
                                   DataCell(Text(score['userName'] ?? '')),
                                   DataCell(
-                                    isManuallyAssigned
-                                        ? TextFormField(
-                                      initialValue: score['laneNum'].toString(),
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          if (value.isEmpty) {
-                                            laneAssignments.remove(score['userName']);
-                                          } else {
-                                            laneAssignments[score['userName']] = int.tryParse(value) ?? 0;
-                                          }
-                                          dailyScores = presentMembers.map((member) => {
-                                            'userId': member['userId'], // userId 필드 유지
-                                            'userName': member['userName'],
-                                            'laneNum': (laneAssignments[member['userName']] is Map)
-                                                ? ''
-                                                : laneAssignments[member['userName']]?.toString() ?? '',
-                                            'laneOrder': (orderAssignments[member['userName']] is Map)
-                                                ? ''
-                                                : orderAssignments[member['userName']]?.toString() ?? ''
-                                          }).toList();
-                                        });
-                                      },
-                                    )
-                                        : Text(score['laneNum'].toString()),
+                                    Container(
+                                      child: isManuallyAssigned
+                                          ? TextFormField(
+                                        initialValue: score['laneNum'].toString(),
+                                        keyboardType: TextInputType.number,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            if (value.isEmpty) {
+                                              laneAssignments.remove(score['userName']);
+                                            } else {
+                                              laneAssignments[score['userName']] = int.tryParse(value) ?? 0;
+                                            }
+                                            dailyScores = presentMembers.map((member) => {
+                                              'userId': member['userId'], // userId 필드 유지
+                                              'userName': member['userName'],
+                                              'laneNum': (laneAssignments[member['userName']] is Map)
+                                                  ? ''
+                                                  : laneAssignments[member['userName']]?.toString() ?? '',
+                                              'laneOrder': (orderAssignments[member['userName']] is Map)
+                                                  ? ''
+                                                  : orderAssignments[member['userName']]?.toString() ?? ''
+                                            }).toList();
+                                          });
+                                        },
+                                      )
+                                          : Text(score['laneNum'].toString()),
+                                    ),
                                   ),
                                   DataCell(
-                                    isManuallyAssigned
-                                        ? TextFormField(
-                                      initialValue: score['laneOrder'].toString(),
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          if (value.isEmpty) {
-                                            orderAssignments.remove(score['userName']);
-                                          } else {
-                                            orderAssignments[score['userName']] = int.tryParse(value) ?? 0;
-                                          }
-                                          dailyScores = presentMembers.map((member) => {
-                                            'userId': member['userId'], // userId 필드 유지
-                                            'userName': member['userName'],
-                                            'laneNum': (laneAssignments[member['userName']] is Map)
-                                                ? ''
-                                                : laneAssignments[member['userName']]?.toString() ?? '',
-                                            'laneOrder': (orderAssignments[member['userName']] is Map)
-                                                ? ''
-                                                : orderAssignments[member['userName']]?.toString() ?? ''
-                                          }).toList();
-                                        });
-                                      },
-                                    )
-                                        : Text(score['laneOrder'].toString()),
+                                    Container(
+                                      child: isManuallyAssigned
+                                          ? TextFormField(
+                                        initialValue: score['laneOrder'].toString(),
+                                        keyboardType: TextInputType.number,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            if (value.isEmpty) {
+                                              orderAssignments.remove(score['userName']);
+                                            } else {
+                                              orderAssignments[score['userName']] = int.tryParse(value) ?? 0;
+                                            }
+                                            dailyScores = presentMembers.map((member) => {
+                                              'userId': member['userId'], // userId 필드 유지
+                                              'userName': member['userName'],
+                                              'laneNum': (laneAssignments[member['userName']] is Map)
+                                                  ? ''
+                                                  : laneAssignments[member['userName']]?.toString() ?? '',
+                                              'laneOrder': (orderAssignments[member['userName']] is Map)
+                                                  ? ''
+                                                  : orderAssignments[member['userName']]?.toString() ?? ''
+                                            }).toList();
+                                          });
+                                        },
+                                      )
+                                          : Text(score['laneOrder'].toString()),
+                                    ),
                                   ),
                                 ],
                               );
@@ -1239,7 +1271,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
           height: kBottomNavigationBarHeight + 20, // 높이를 약간 조정하여 BottomAppBar를 위로 올림
           child: Row(
             children: [
-              // 데이터 복사하기 버튼 (왼쪽)
               OutlinedButton(
                 onPressed: _copyTableToClipboard,
                 style: OutlinedButton.styleFrom(
@@ -1262,7 +1293,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                 ),
               ),
               Spacer(), // 홈 버튼과 오른쪽 버튼들 사이의 간격을 조절합니다.
-              // 홈 버튼 (중앙)
               GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -1297,7 +1327,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                 ),
               ),
               Spacer(), // 홈 버튼과 오른쪽 버튼들 사이의 간격을 조절합니다.
-              // 삭제 버튼
               ElevatedButton(
                 onPressed: () {
                   _confirmDelete();
@@ -1318,7 +1347,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
                 ),
               ),
               Spacer(), // 홈 버튼과 오른쪽 버튼들 사이의 간격을 조절합니다.
-              // 저장 버튼
               ElevatedButton(
                 onPressed: () {
                   validateAndSave();
@@ -1342,8 +1370,6 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
           ),
         ),
       ),
-
-
     );
   }
 
