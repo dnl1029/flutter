@@ -339,7 +339,7 @@ class UserInfo extends StatelessWidget {
                   : AssetImage('default.png'),
             ),
           ),
-          SizedBox(width: 12), // Added space between image and right column
+          SizedBox(width: 10), // Added space between image and right column
           // User Info Section
           Expanded(
             child: Column(
@@ -370,7 +370,7 @@ class UserInfo extends StatelessWidget {
                               color: Colors.blue[700],
                             ),
                           ),
-                          SizedBox(width: 12),
+                          SizedBox(width: 10),
                           Container(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start, // Changed alignment to left
@@ -404,7 +404,7 @@ class UserInfo extends StatelessWidget {
                               color: Colors.black,
                             ),
                           ),
-                          SizedBox(width: 12),
+                          SizedBox(width: 10),
                           Container(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start, // Changed alignment to left
@@ -1246,23 +1246,33 @@ class _RecordsSectionState extends State<RecordsSection> {
               ],
             ),
             SizedBox(height: 16),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
-                child: DataTable(
-                  columnSpacing: 20,
-                  headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[100]!),
-                  border: TableBorder(
-                    top: BorderSide(width: 1.5, color: Colors.black),
-                    verticalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
-                    horizontalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
+            // 선택된 날짜에 데이터가 없는 경우
+            if (dailyScores.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20.0),
+                child: Text(
+                  '선택한 날짜에는 데이터가 없습니다.',
+                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                ),
+              )
+            else
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: 300),
+                  child: DataTable(
+                    columnSpacing: 20,
+                    headingRowColor: MaterialStateColor.resolveWith((states) => Colors.grey[100]!),
+                    border: TableBorder(
+                      top: BorderSide(width: 1.5, color: Colors.black),
+                      verticalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
+                      horizontalInside: BorderSide(width: 0.7, color: Colors.grey[300]!),
+                    ),
+                    columns: _buildColumns(),
+                    rows: _buildRows(),
                   ),
-                  columns: _buildColumns(),
-                  rows: _buildRows(),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -1301,6 +1311,20 @@ class _RecordsSectionState extends State<RecordsSection> {
           ),
         );
       }
+
+      // 평균 컬럼 추가
+      columns.add(
+        DataColumn(
+          label: Expanded(
+            child: Center(
+              child: Text(
+                '평균',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     return columns;
@@ -1310,6 +1334,7 @@ class _RecordsSectionState extends State<RecordsSection> {
     List<DataRow> rows = [];
 
     Map<String, List<DataCell>> userRows = {};
+    Map<String, int> userAverages = {};
 
     dailyScores.forEach((score) {
       String userName = score['userName'] as String;
@@ -1325,7 +1350,7 @@ class _RecordsSectionState extends State<RecordsSection> {
           ),
         ),
         ...List<DataCell>.generate(
-          _buildColumns().length - 1,
+          _buildColumns().length - 2,
               (_) => DataCell(
             Center(
               child: Text(''),
@@ -1339,11 +1364,37 @@ class _RecordsSectionState extends State<RecordsSection> {
           child: Text(scoreValue.toString()),
         ),
       );
+
+      if (userAverages.containsKey(userName)) {
+        userAverages[userName] = ((userAverages[userName]! + scoreValue) / 2).round();
+      } else {
+        userAverages[userName] = scoreValue;
+      }
     });
 
-    userRows.forEach((userName, cells) {
-      rows.add(DataRow(cells: cells));
+    userAverages.forEach((userName, avg) {
+      userRows[userName]!.add(
+        DataCell(
+          Center(
+            child: Text(avg.toString()),
+          ),
+        ),
+      );
     });
+
+    // 평균값으로 내림차순 정렬하고, 평균값이 같으면 이름 오름차순 정렬
+    final sortedUserNames = userAverages.keys.toList()
+      ..sort((a, b) {
+        int compareAvg = userAverages[b]!.compareTo(userAverages[a]!);
+        if (compareAvg == 0) {
+          return a.compareTo(b);
+        }
+        return compareAvg;
+      });
+
+    for (String userName in sortedUserNames) {
+      rows.add(DataRow(cells: userRows[userName]!));
+    }
 
     return rows;
   }
