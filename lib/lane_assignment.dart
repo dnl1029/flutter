@@ -579,21 +579,25 @@ class _BowlingLanesPageState extends State<BowlingLanesPage> {
     // Calculate the number of seeded and non-seeded members
     int numSeeded = min(laneCount, seededMembers.length);
     List<Map<String, dynamic>> topSeededMembers = seededMembers.take(numSeeded).toList();
+    List<Map<String, dynamic>> remainingSeededMembers = seededMembers.skip(numSeeded).toList();
     List<Map<String, dynamic>> remainingMembers = [
-      ...seededMembers.skip(numSeeded),
+      ...remainingSeededMembers,
       ...unseededMembers
     ];
 
     laneAssignments.clear();
     orderAssignments.clear();
 
-    // Step 1: Assign top seeded members to lane 1 to lane numSeeded
     Random rng = Random();
     List<int> availableLanes = List.generate(laneCount, (index) => index + 1);
     List<int> usedLanes = [];
 
+    // Step 1: Assign top seeded members to random lanes
+    List<int> lanesForSeeded = List.from(availableLanes);
+    lanesForSeeded.shuffle(rng);
+
     for (int i = 0; i < numSeeded; i++) {
-      int lane = availableLanes[i];
+      int lane = lanesForSeeded[i];
       laneAssignments[topSeededMembers[i]['userName']] = lane;
       orderAssignments[topSeededMembers[i]['userName']] = 1;
       usedLanes.add(lane);
